@@ -1,0 +1,67 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* 1. INJECT AUTHORIZED THEMES (DaisyUI v5) */
+@plugin "daisyui/theme" {
+  name: "corporate";
+  default: true;
+} /* Office */
+@plugin "daisyui/theme" {
+  name: "dark";
+}
+@plugin "daisyui/theme" {
+  name: "business";
+} /* Bold */
+@plugin "daisyui/theme" {
+  name: "wireframe";
+} /* Sharp */
+@plugin "daisyui/theme" {
+  name: "dracula";
+} /* Trendy */
+
+/* 2. THE UI GRAPH: DENSITY & AESTHETICS */
+html[data-radius="sharp"] {
+  --rounded-box: 0rem;
+  --rounded-btn: 0rem;
+  --rounded-badge: 0rem;
+}
+html[data-radius="smooth"] {
+  --rounded-box: 1rem;
+  --rounded-btn: 0.5rem;
+  --rounded-badge: 1.9rem;
+}
+html[data-radius="pill"] {
+  --rounded-box: 2rem;
+  --rounded-btn: 9999px;
+  --rounded-badge: 9999px;
+}
+
+html[data-border="none"] {
+  --app-border-width: 0px;
+  --app-border-color: transparent;
+}
+html[data-border="thin"] {
+  --app-border-width: 1px;
+  --app-border-color: var(--fallback-bc, oklch(var(--bc) / 0.15));
+}
+
+html[data-density="compact"] {
+  --app-pad: 0.5rem;
+}
+html[data-density="comfortable"] {
+  --app-pad: 1.25rem;
+}
+html[data-density="spacious"] {
+  --app-pad: 2.5rem;
+}
+
+/* 3. STRUCTURAL UTILITIES */
+.layout-pad {
+  padding: var(--app-pad);
+}
+.app-border {
+  border: var(--app-border-width) solid var(--app-border-color);
+}
+.card {
+  border: var(--app-border-width) solid var(--app-border-color);
+}
