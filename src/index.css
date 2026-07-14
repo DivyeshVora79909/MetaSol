@@ -18,8 +18,43 @@
 @plugin "daisyui/theme" {
   name: "dracula";
 } /* Trendy */
+@plugin "daisyui/theme" {
+  name: "light";
+}
+@plugin "daisyui/theme" {
+  name: "night";
+}
+@plugin "daisyui/theme" {
+  name: "emerald";
+}
+@plugin "daisyui/theme" {
+  name: "sunset";
+}
 
-/* 2. THE UI GRAPH: DENSITY & AESTHETICS */
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+:root {
+  --app-pad: 1.25rem;
+}
+
+body {
+  min-width: 20rem;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Runtime appearance preferences: persisted by the UI store. */
 html[data-radius="sharp"] {
   --rounded-box: 0rem;
   --rounded-btn: 0rem;
@@ -44,6 +79,10 @@ html[data-border="thin"] {
   --app-border-width: 1px;
   --app-border-color: var(--fallback-bc, oklch(var(--bc) / 0.15));
 }
+html[data-border="thick"] {
+  --app-border-width: 2px;
+  --app-border-color: var(--fallback-bc, oklch(var(--bc) / 0.2));
+}
 
 html[data-density="compact"] {
   --app-pad: 0.5rem;
@@ -55,10 +94,16 @@ html[data-density="spacious"] {
   --app-pad: 2.5rem;
 }
 
-/* 3. STRUCTURAL UTILITIES */
 .layout-pad {
   padding: var(--app-pad);
 }
+
+@media (max-width: 47.99rem) {
+  html[data-density="spacious"] {
+    --app-pad: 1.25rem;
+  }
+}
+
 .app-border {
   border: var(--app-border-width) solid var(--app-border-color);
 }

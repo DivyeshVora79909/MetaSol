@@ -61,7 +61,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div class="flex flex-col h-full gap-[var(--app-pad)]">
+    <div class="flex h-full flex-col gap-[var(--app-pad)] pb-[var(--app-pad)]">
       {/* 1. TOP METRICS ROW (Network Fueled) */}
       <Show
         when={!metricsQuery.isLoading}
@@ -99,7 +99,7 @@ export default function Dashboard() {
       {/* 2. MAIN WORKSPACE GRID */}
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-[var(--app-pad)] flex-1">
         {/* Main Chart / Activity Area */}
-        <div class="card bg-base-100 shadow-sm border border-base-300 lg:col-span-2">
+        <div class="card border border-base-300 bg-base-100 shadow-sm lg:col-span-2">
           <div class="card-body p-6">
             <h2 class="card-title text-lg border-b border-base-200 pb-2">
               Revenue Topology
@@ -113,7 +113,7 @@ export default function Dashboard() {
         </div>
 
         {/* Secondary Feed Area */}
-        <div class="card bg-base-100 shadow-sm border border-base-300">
+        <div class="card border border-base-300 bg-base-100 shadow-sm">
           <div class="card-body p-6">
             <h2 class="card-title text-lg border-b border-base-200 pb-2">
               Recent Mutations

@@ -31,8 +31,8 @@ export default function UserView() {
   }));
 
   return (
-    <div class="flex flex-col gap-[var(--app-pad)] max-w-5xl mx-auto w-full pb-8">
-      <div class="flex items-center justify-between bg-base-100 p-4 rounded-box border border-base-300 shadow-sm shrink-0">
+    <div class="mx-auto flex w-full max-w-5xl flex-col gap-[var(--app-pad)] pb-[var(--app-pad)]">
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm sm:p-5">
         <div class="flex items-center gap-4">
           <A href="/users" class="btn btn-square btn-sm btn-ghost">
             <ArrowLeft size={18} />
@@ -65,7 +65,7 @@ export default function UserView() {
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-[var(--app-pad)]">
             {/* Identity Column */}
             <div class="flex flex-col gap-[var(--app-pad)]">
-              <div class="card bg-base-100 border border-base-300 shadow-sm">
+              <div class="card border border-base-300 bg-base-100 shadow-sm">
                 <div class="card-body p-6">
                   <div class="avatar placeholder mb-2">
                     <div
@@ -111,7 +111,7 @@ export default function UserView() {
 
             {/* Topology Column */}
             <div class="lg:col-span-2 flex flex-col gap-[var(--app-pad)]">
-              <div class="card bg-base-100 border border-base-300 shadow-sm">
+              <div class="card border border-base-300 bg-base-100 shadow-sm">
                 <div class="card-body p-6">
                   <h3 class="text-xs font-bold text-base-content/50 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Network size={16} class="text-primary" /> Structural
@@ -153,7 +153,7 @@ export default function UserView() {
                 </div>
               </div>
 
-              <div class="card bg-base-100 border border-base-300 shadow-sm">
+              <div class="card border border-base-300 bg-base-100 shadow-sm">
                 <div class="card-body p-6">
                   <h3 class="text-xs font-bold text-base-content/50 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Key size={16} class="text-secondary" /> Evaluated

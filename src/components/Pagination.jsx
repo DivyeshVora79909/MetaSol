@@ -6,8 +6,8 @@ export default function Pagination(props) {
   const page = () => Math.min(Math.max(1, Number(props.page) || 1), totalPages());
   const first = () => total() === 0 ? 0 : (page() - 1) * limit() + 1;
   const last = () => Math.min(page() * limit(), total());
-  return <nav aria-label="Pagination" class="flex flex-wrap items-center justify-between gap-3 rounded-box border border-base-300 bg-base-100 p-3 shadow-sm">
-    <p class="px-2 text-sm text-base-content/65">Showing <strong class="text-base-content">{first()}–{last()}</strong> of <strong class="text-base-content">{total()}</strong> {props.label || "records"}</p>
-    <div class="join"><button class="btn btn-sm join-item" aria-label="Previous page" disabled={page() <= 1} onClick={() => props.onPageChange(page() - 1)}><ChevronLeft size={16} /></button><span class="btn btn-sm join-item pointer-events-none font-mono">Page {page()} of {totalPages()}</span><button class="btn btn-sm join-item" aria-label="Next page" disabled={page() >= totalPages()} onClick={() => props.onPageChange(page() + 1)}><ChevronRight size={16} /></button></div>
+  return <nav aria-label="Pagination" class="flex flex-col items-stretch justify-between gap-3 rounded-box border border-base-300 bg-base-100 p-3 shadow-sm sm:flex-row sm:items-center">
+    <p class="px-2 text-center text-sm text-base-content/65 sm:text-left">Showing <strong class="text-base-content">{first()}–{last()}</strong> of <strong class="text-base-content">{total()}</strong> {props.label || "records"}</p>
+    <div class="join self-center sm:self-auto"><button class="btn btn-sm join-item" aria-label="Previous page" disabled={page() <= 1} onClick={() => props.onPageChange(page() - 1)}><ChevronLeft size={16} /></button><span class="btn btn-sm join-item pointer-events-none font-mono">Page {page()} of {totalPages()}</span><button class="btn btn-sm join-item" aria-label="Next page" disabled={page() >= totalPages()} onClick={() => props.onPageChange(page() + 1)}><ChevronRight size={16} /></button></div>
   </nav>;
 }

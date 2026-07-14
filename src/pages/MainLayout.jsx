@@ -34,7 +34,7 @@ export default function MainLayout(props) {
   ];
 
   return (
-    <div class="flex h-screen w-full bg-base-200 overflow-hidden relative">
+    <div class="relative flex h-dvh w-full overflow-hidden bg-base-200/70">
       {/* =========================================================
           THE UNIFIED SIDEBAR (Desktop Mini-mode OR Mobile Drawer)
           ========================================================= */}
@@ -50,9 +50,9 @@ export default function MainLayout(props) {
       {/* The Sidebar Element */}
       <aside
         class={`
-          fixed md:relative z-50 h-full bg-base-100 shadow-xl border-r border-base-300 
+          fixed md:relative z-50 h-full max-w-[calc(100vw-2rem)] bg-base-100 shadow-xl border-r border-base-300
           flex flex-col transition-all duration-300 ease-in-out
-          ${ui.sidebarOpen ? "w-64 translate-x-0" : "-translate-x-full md:translate-x-0 md:w-20"}
+          ${ui.sidebarOpen ? "w-72 translate-x-0" : "-translate-x-full md:translate-x-0 md:w-20"}
         `}
       >
         {/* Brand Header */}
@@ -139,14 +139,15 @@ export default function MainLayout(props) {
       {/* =========================================================
           MAIN WORKSPACE (Header + Content)
           ========================================================= */}
-      <main class="flex-1 flex flex-col min-w-0 bg-base-200 h-screen relative">
+      <main class="relative flex h-dvh min-w-0 flex-1 flex-col bg-base-200/40">
         {/* Workspace Header */}
-        <header class="h-16 bg-base-100 border-b border-base-300 flex items-center justify-between px-4 shadow-sm shrink-0 z-10">
+        <header class="z-10 flex min-h-16 shrink-0 items-center justify-between border-b border-base-300 bg-base-100/95 px-3 shadow-sm backdrop-blur sm:px-4">
           <div class="flex items-center gap-3">
             {/* Contextual Hamburger / Collapse Button */}
             <button
               class="btn btn-sm btn-ghost btn-circle"
               onClick={toggleSidebar}
+              aria-label={ui.sidebarOpen ? "Collapse navigation" : "Open navigation"}
             >
               <Show when={!ui.isMobile} fallback={<Menu size={20} />}>
                 {ui.sidebarOpen ? (
@@ -161,8 +162,10 @@ export default function MainLayout(props) {
         </header>
 
         {/* Content Injection Area */}
-        <div class="flex-1 overflow-y-auto layout-pad w-full">
-          <div class="max-w-7xl mx-auto w-full">{props.children}</div>
+        <div class="layout-pad w-full flex-1 overflow-y-auto">
+          <div class="mx-auto w-full max-w-[var(--app-content-width)]">
+            {props.children}
+          </div>
         </div>
       </main>
 

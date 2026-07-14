@@ -27,12 +27,17 @@ export default function Login() {
   };
 
   return (
-    <div class="flex min-h-screen items-center justify-center bg-base-200 p-4">
-      <div class="card w-full max-w-sm bg-base-100 shadow-xl">
-        <form onSubmit={handleSubmit} class="card-body">
-          <h2 class="card-title text-2xl font-bold">ReBase Login</h2>
+    <div class="card w-full bg-base-100 shadow-xl ring-1 ring-base-content/10">
+      <form onSubmit={handleSubmit} class="card-body p-6 sm:p-8">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
+          ReBase
+        </p>
+        <h2 class="card-title text-2xl font-bold">Welcome back</h2>
+        <p class="text-sm text-base-content/60">
+          Sign in to continue to your workspace.
+        </p>
 
-          <div class="form-control w-full mt-4">
+        <div class="form-control w-full mt-4">
             <label class="label">
               <span class="label-text">Email</span>
             </label>
@@ -43,9 +48,9 @@ export default function Login() {
               onInput={(e) => setEmail(e.target.value)}
               required
             />
-          </div>
+        </div>
 
-          <div class="form-control w-full mt-2">
+        <div class="form-control w-full mt-2">
             <label class="label">
               <span class="label-text">Password</span>
             </label>
@@ -64,9 +69,9 @@ export default function Login() {
                 Forgot password?
               </A>
             </label>
-          </div>
+        </div>
 
-          <div class="card-actions mt-6">
+        <div class="card-actions mt-6">
             <button
               type="submit"
               class="btn btn-primary w-full"
@@ -76,9 +81,9 @@ export default function Login() {
                 <span class="loading loading-spinner"></span> Authenticating...
               </Show>
             </button>
-          </div>
+        </div>
 
-          <div class="text-center mt-4">
+        <div class="text-center mt-4">
             <span class="text-sm text-base-content/70">
               Have an invite token?{" "}
             </span>
@@ -88,9 +93,8 @@ export default function Login() {
             >
               Activate Account
             </A>
-          </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }

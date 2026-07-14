@@ -7,15 +7,52 @@ import DataTable from "../../components/DataTable";
 import Pagination from "../../components/Pagination";
 import { useUserDomain } from "./UserContext";
 export default function UserList() {
-  const {
-    setPageMeta
-  } = useUI();
+  const { setPageMeta } = useUI();
   const domain = useUserDomain();
+
   createEffect(() => setPageMeta("Node Analytics", "users"));
-  return <main class="flex h-full flex-col gap-[var(--app-pad)] pb-8">
-    <header class="flex flex-wrap items-center justify-between gap-4 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm"><div><h1 class="text-lg font-bold">{domain.config.ui.title}</h1><p class="text-sm text-base-content/60">{domain.config.ui.description}</p></div><A href="/users/new" class="btn btn-primary btn-sm"><Plus size={16} />Create {domain.config.ui.entityLabel}</A></header>
-    <QueryBuilder config={domain.config} draft={domain.draftQuery} setDraft={domain.setDraftQuery} hasPendingChanges={domain.hasPendingChanges} error={domain.compileError()} onApply={domain.commitQuery} onReset={domain.resetDraft} />
-    <section class="min-h-[24rem] flex-1"><DataTable config={domain.config} select={domain.appliedQuery().select} data={domain.listQuery.data?.data} isLoading={domain.listQuery.isLoading} error={domain.listQuery.error?.message} entityLabelPlural={domain.config.ui.entityLabelPlural} baseRoute="/users" /></section>
-    <Pagination page={domain.appliedQuery().page} limit={domain.appliedQuery().limit} total={domain.listQuery.data?.total} label={domain.config.ui.entityLabelPlural} onPageChange={domain.setPage} />
+
+  return <main class="flex min-h-full flex-col gap-[var(--app-pad)] pb-[var(--app-pad)]">
+    <section class="overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-sm">
+      <header class="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-5">
+        <div>
+          <h1 class="text-xl font-bold tracking-tight">{domain.config.ui.title}</h1>
+          <p class="mt-1 text-sm text-base-content/60">{domain.config.ui.description}</p>
+        </div>
+        <A href="/users/new" class="btn btn-primary w-full sm:w-auto">
+          <Plus size={18} />
+          Create {domain.config.ui.entityLabel}
+        </A>
+      </header>
+      <QueryBuilder
+        config={domain.config}
+        draft={domain.draftQuery}
+        setDraft={domain.setDraftQuery}
+        hasPendingChanges={domain.hasPendingChanges}
+        error={domain.compileError()}
+        onApply={domain.commitQuery}
+        onReset={domain.resetDraft}
+      />
+    </section>
+
+    <section class="min-h-96 flex-1">
+      <DataTable
+        config={domain.config}
+        select={domain.appliedQuery().select}
+        data={domain.listQuery.data?.data}
+        isLoading={domain.listQuery.isLoading}
+        error={domain.listQuery.error?.message}
+        entityLabelPlural={domain.config.ui.entityLabelPlural}
+        baseRoute="/users"
+      />
+    </section>
+
+    <Pagination
+      page={domain.appliedQuery().page}
+      limit={domain.appliedQuery().limit}
+      total={domain.listQuery.data?.total}
+      label={domain.config.ui.entityLabelPlural}
+      onPageChange={domain.setPage}
+    />
   </main>;
 }

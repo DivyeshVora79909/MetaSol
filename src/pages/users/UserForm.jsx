@@ -91,8 +91,8 @@ export default function UserForm() {
   };
 
   return (
-    <div class="flex flex-col gap-[var(--app-pad)] max-w-2xl mx-auto w-full pb-8">
-      <div class="flex items-center gap-4 bg-base-100 p-4 rounded-box border border-base-300 shadow-sm shrink-0">
+    <div class="mx-auto flex w-full max-w-2xl flex-col gap-[var(--app-pad)] pb-[var(--app-pad)]">
+      <div class="flex flex-wrap items-center gap-4 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm sm:p-5">
         <A href="/users" class="btn btn-square btn-sm btn-ghost">
           <ArrowLeft size={18} />
         </A>
@@ -106,7 +106,7 @@ export default function UserForm() {
         </div>
       </div>
 
-      <div class="bg-base-100 border border-base-300 rounded-box shadow-sm p-6">
+      <div class="rounded-box border border-base-300 bg-base-100 p-4 shadow-sm sm:p-6">
         <Show
           when={!isEdit() || !userQuery.isLoading}
           fallback={
@@ -184,13 +184,13 @@ export default function UserForm() {
               </label>
             </div>
 
-            <div class="mt-4 flex justify-end gap-2 pt-4 border-t border-base-300">
-              <A href="/users" class="btn btn-sm btn-ghost">
+            <div class="mt-4 flex flex-col-reverse justify-end gap-2 border-t border-base-300 pt-4 sm:flex-row">
+              <A href="/users" class="btn btn-ghost sm:btn-sm">
                 Cancel
               </A>
               <button
                 type="submit"
-                class="btn btn-sm btn-primary px-8"
+                class="btn btn-primary sm:btn-sm sm:px-8"
                 disabled={submitting()}
               >
                 <Show
