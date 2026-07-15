@@ -4,9 +4,15 @@ export const TYPES = Object.freeze({
   BOOLEAN: "boolean",
   DATETIME: "datetime",
   RECORD: "record",
-  ARRAY: "array",
-  OBJECT: "object"
+  ARRAY: "array"
 });
+export const PRIMITIVE_TYPES = Object.freeze([
+  TYPES.STRING,
+  TYPES.NUMBER,
+  TYPES.BOOLEAN,
+  TYPES.DATETIME,
+  TYPES.RECORD
+]);
 const aliases = Object.freeze({
   date: TYPES.DATETIME,
   datetime: TYPES.DATETIME,
@@ -14,11 +20,22 @@ const aliases = Object.freeze({
 });
 export function normalizeType(type) {
   const normalized = aliases[type] || type;
+  if (typeof normalized === "string" && /^array<[^<>]+>$/.test(normalized)) {
+    const itemType = normalized.slice(6, -1);
+    if (!PRIMITIVE_TYPES.includes(itemType)) {
+      throw new Error(`Unsupported Surreal array item type "${itemType}".`);
+    }
+    return TYPES.ARRAY;
+  }
   if (!Object.values(TYPES).includes(normalized)) throw new Error(`Unsupported Surreal field type "${type}".`);
   return normalized;
 }
+export function itemTypeFor(field) {
+  const generic = typeof field.type === "string" && /^array<[^<>]+>$/.test(field.type) ? field.type.slice(6, -1) : undefined;
+  return normalizeType(generic || field.items || field.innerType || TYPES.STRING);
+}
 export function valueTypeFor(field, operator) {
-  return operator.valueType === "item" && field.type === TYPES.ARRAY ? normalizeType(field.items ?? field.innerType ?? TYPES.STRING) : field.type;
+  return operator.valueType === "item" && normalizeType(field.type) === TYPES.ARRAY ? itemTypeFor(field) : normalizeType(field.type);
 }
 export function normalizeValue(type, value) {
   if (value === null || value === undefined) return value;
@@ -28,6 +45,9 @@ export function normalizeValue(type, value) {
       return value;
     case TYPES.NUMBER:
       {
+        if (typeof value !== "number" && typeof value !== "string") {
+          throw new Error("Expected a finite number.");
+        }
         const number = typeof value === "number" ? value : Number(value);
         if (!Number.isFinite(number)) throw new Error("Expected a finite number.");
         return number;
@@ -39,6 +59,9 @@ export function normalizeValue(type, value) {
       throw new Error("Expected true or false.");
     case TYPES.DATETIME:
       {
+        if (typeof value !== "string" && typeof value !== "number" && !(value instanceof Date)) {
+          throw new Error("Expected a valid datetime.");
+        }
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) throw new Error("Expected a valid datetime.");
         return date.toISOString();
@@ -48,9 +71,6 @@ export function normalizeValue(type, value) {
       return value;
     case TYPES.ARRAY:
       if (!Array.isArray(value)) throw new Error("Expected an array value.");
-      return value;
-    case TYPES.OBJECT:
-      if (typeof value !== "object" || Array.isArray(value)) throw new Error("Expected an object value.");
       return value;
   }
 }

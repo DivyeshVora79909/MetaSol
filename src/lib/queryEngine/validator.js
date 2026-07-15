@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { getOperator, hasOperator, isOperatorAllowed } from "./operators.js";
-import { castVariable, normalizeFilterValue, normalizeType, valueTypeFor } from "./types.js";
+import { castVariable, itemTypeFor, normalizeFilterValue, normalizeType, valueTypeFor } from "./types.js";
 const FilterSchema = v.object({
   field: v.string(),
   operator: v.string(),
@@ -27,7 +27,7 @@ export const QuerySchema = v.object({
   limit: v.pipe(v.number(), v.integer(), v.minValue(1)),
   options: OptionsSchema
 });
-const isBlank = value => value === "" || value === null || value === undefined;
+const isBlank = value => (typeof value === "string" && value.trim() === "") || value === null || value === undefined;
 const isIncomplete = (rhs, value) => rhs === "scalar" ? isBlank(value) : rhs === "array" ? !Array.isArray(value) || value.length === 0 : rhs === "range" ? !Array.isArray(value) || value.length !== 2 || value.some(isBlank) : false;
 const compiledFieldMaps = new WeakMap();
 function compileFields(config) {
@@ -38,12 +38,16 @@ function compileFields(config) {
     if (!source?.id || fields.has(source.id)) throw new Error(`Field ids must be unique; invalid id "${source?.id}".`);
     const type = normalizeType(source.type);
     if (type === "array" && (source.items ?? source.innerType)) normalizeType(source.items ?? source.innerType);
+    if (type === "array") itemTypeFor(source);
     for (const key of ["select", "filter", "sort", "fetch", "omit"]) {
       if (source[key] !== undefined && (typeof source[key] !== "string" || source[key].trim() === "")) throw new Error(`Field "${source.id}" has an invalid ${key} expression.`);
     }
     fields.set(source.id, {
       ...source,
       type,
+      // Preserve generic array metadata after canonicalising `array<T>` to
+      // `array`; value coercion needs the member type, not just the container.
+      ...(type === "array" ? { items: itemTypeFor(source) } : {}),
       operators: source.operators ?? []
     });
   }
@@ -66,9 +70,11 @@ export function validateQuery(rawState, config) {
   const state = v.parse(QuerySchema, structuredClone(rawState));
   const fields = compileFields(config);
   const maxLimit = config.capabilities?.maxLimit ?? 1000,
-    maxSorts = config.capabilities?.maxSorts ?? 2;
+    maxSorts = config.capabilities?.maxSorts ?? 2,
+    maxFilters = config.capabilities?.maxFilters ?? 12;
   if (state.limit > maxLimit) throw new Error(`Limit cannot exceed ${maxLimit}.`);
   if (state.sorts.length > maxSorts) throw new Error(`At most ${maxSorts} sort fields are allowed.`);
+  if (state.filters.length > maxFilters) throw new Error(`At most ${maxFilters} filters are allowed.`);
   const unique = (items, label) => {
     if (new Set(items).size !== items.length) throw new Error(`${label} cannot contain duplicates.`);
   };
