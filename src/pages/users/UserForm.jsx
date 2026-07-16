@@ -128,7 +128,7 @@ export default function UserForm() {
           }
         >
           <form onSubmit={handleSubmit} class="card-body">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div class="form-control w-full">
                 <label class="label">
                   <span class="label-text font-semibold">Name</span>
@@ -174,7 +174,7 @@ export default function UserForm() {
                 </select>
               </div>
 
-              <div class="form-control w-full">
+              <div class="form-control w-full lg:col-span-3">
                 <label class="label cursor-pointer justify-start gap-4 h-full items-end pb-3">
                   <input
                     type="checkbox"

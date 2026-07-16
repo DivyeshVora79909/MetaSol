@@ -22,7 +22,11 @@ const displayValue = (value, field) => {
   if (Array.isArray(value)) {
     const label = field.ui?.arrayLabel || "item";
     const suffix = value.length === 1 ? label : `${label}s`;
-    return <span class="badge badge-ghost badge-sm tabular-nums">{value.length} {suffix}</span>;
+    return (
+      <span class="badge badge-ghost badge-sm tabular-nums">
+        {value.length} {suffix}
+      </span>
+    );
   }
   return (
     <span
@@ -71,7 +75,6 @@ export default function DataTable(props) {
               <tr>
                 <td colSpan={columnCount()} class="py-12 text-center">
                   <span class="loading loading-spinner loading-lg text-primary" />
-                  <span class="sr-only">Loading records</span>
                 </td>
               </tr>
             }
@@ -105,7 +108,16 @@ export default function DataTable(props) {
               >
                 <For each={rows()}>
                   {(row) => (
-                    <tr class="group transition-colors hover:bg-base-200/50">
+                    <tr
+                      class={`group transition-all cursor-pointer hover:bg-base-200/50 ${
+                        props.isSelected?.(row.id)
+                          ? "bg-accent/30 border-l-4 border-l-accent"
+                          : "border-l-4 border-l-transparent"
+                      }`}
+                      onClick={() =>
+                        props.onRowClick && props.onRowClick(row.id)
+                      }
+                    >
                       <For each={columns()}>
                         {(field) => (
                           <td>{displayValue(row[field.id], field)}</td>
@@ -117,22 +129,24 @@ export default function DataTable(props) {
                             <A
                               href={`${props.baseRoute}/${row.id}`}
                               class="btn btn-ghost btn-sm btn-square"
-                              aria-label={`View ${row.id}`}
+                              onClick={(e) => e.stopPropagation()}
                             >
                               <Eye size={15} />
                             </A>
                             <A
                               href={`${props.baseRoute}/${row.id}/edit`}
                               class="btn btn-ghost btn-sm btn-square text-primary"
-                              aria-label={`Edit ${row.id}`}
+                              onClick={(e) => e.stopPropagation()}
                             >
                               <Edit2 size={15} />
                             </A>
                             <Show when={props.onDelete}>
                               <button
                                 class="btn btn-ghost btn-sm btn-square text-error"
-                                aria-label={`Delete ${row.id}`}
-                                onClick={() => props.onDelete(row.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  props.onDelete(row.id);
+                                }}
                               >
                                 <Trash2 size={15} />
                               </button>

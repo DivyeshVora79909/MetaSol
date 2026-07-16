@@ -3,15 +3,28 @@ import { createStore } from "solid-js/store";
 
 const UIContext = createContext();
 
-export function UIProvider(props) {
-  const [ui, setUi] = createStore({
-    // QUADRANT 1: AESTHETIC MATH
-    theme: localStorage.getItem("rebase_theme") || "dark",
-    density: localStorage.getItem("rebase_density") || "comfortable", // compact | comfortable | spacious
-    radius: localStorage.getItem("rebase_radius") || "smooth", // sharp | smooth | pill
-    border: localStorage.getItem("rebase_border") || "thin", // none | thin | thick
+const THEME_PRESETS = {
+  corporate: { radius: "smooth", border: "thin", density: "comfortable" },
+  dark: { radius: "smooth", border: "thin", density: "comfortable" },
+  business: { radius: "sharp", border: "thin", density: "compact" },
+  wireframe: { radius: "sharp", border: "thick", density: "spacious" },
+  dracula: { radius: "pill", border: "none", density: "comfortable" },
+  light: { radius: "smooth", border: "none", density: "comfortable" },
+  night: { radius: "sharp", border: "thin", density: "compact" },
+  emerald: { radius: "pill", border: "thin", density: "comfortable" },
+  sunset: { radius: "smooth", border: "thick", density: "spacious" },
+};
 
-    // QUADRANT 2: DEVICE TOPOLOGY
+export function UIProvider(props) {
+  const initialTheme = localStorage.getItem("rebase_theme") || "dark";
+  const defaultPreset = THEME_PRESETS[initialTheme] || THEME_PRESETS.dark;
+
+  const [ui, setUi] = createStore({
+    theme: initialTheme,
+    density: localStorage.getItem("rebase_density") || defaultPreset.density,
+    radius: localStorage.getItem("rebase_radius") || defaultPreset.radius,
+    border: localStorage.getItem("rebase_border") || defaultPreset.border,
+
     viewport: window.innerWidth,
     get device() {
       if (this.viewport < 768) return "mobile";
@@ -22,12 +35,10 @@ export function UIProvider(props) {
       return this.device === "mobile";
     },
 
-    // QUADRANT 3: CONTEXTUAL META (Propagated to Layout Headers)
     sidebarOpen: true,
     pageTitle: "Dashboard",
-    activeModule: "core", // e.g., 'users', 'crm', 'finance'
+    activeModule: "core",
 
-    // QUADRANT 4: THE OVERLAY MATRIX (O(1) Global Modals & Drawers)
     drawer: { isOpen: false, title: "", content: null, size: "md" },
     modal: {
       isOpen: false,
@@ -38,10 +49,19 @@ export function UIProvider(props) {
     },
   });
 
-  // MUTATORS
   const setAesthetic = (key, value) => {
     setUi(key, value);
     localStorage.setItem(`rebase_${key}`, value);
+
+    if (key === "theme" && THEME_PRESETS[value]) {
+      const preset = THEME_PRESETS[value];
+      setUi("radius", preset.radius);
+      setUi("border", preset.border);
+      setUi("density", preset.density);
+      localStorage.setItem("rebase_radius", preset.radius);
+      localStorage.setItem("rebase_border", preset.border);
+      localStorage.setItem("rebase_density", preset.density);
+    }
   };
 
   const setPageMeta = (title, module = ui.activeModule) => {
@@ -50,28 +70,19 @@ export function UIProvider(props) {
   };
 
   const toggleSidebar = () => setUi("sidebarOpen", !ui.sidebarOpen);
-
-  // Overlay Mutators (Pass a function returning JSX for the content)
   const openDrawer = (title, content, size = "md") =>
     setUi("drawer", { isOpen: true, title, content, size });
   const closeDrawer = () => setUi("drawer", "isOpen", false);
-
   const openModal = (title, message, type = "info", onConfirm = null) =>
     setUi("modal", { isOpen: true, title, message, type, onConfirm });
   const closeModal = () => setUi("modal", "isOpen", false);
 
-  // ============================================================================
-  // REACTIVE GRAPH EFFECTS
-  // ============================================================================
-
-  // 1. Sync Viewport
   createEffect(() => {
     const onResize = () => setUi("viewport", window.innerWidth);
     window.addEventListener("resize", onResize);
     onCleanup(() => window.removeEventListener("resize", onResize));
   });
 
-  // 2. Sync DOM Attributes (This triggers the CSS Math below)
   createEffect(() => {
     const root = document.documentElement;
     root.setAttribute("data-theme", ui.theme);

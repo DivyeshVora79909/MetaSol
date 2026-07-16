@@ -58,11 +58,11 @@ export default function MainLayout(props) {
         {/* Brand Header */}
         <div class="flex items-center justify-between h-16 px-4 border-b border-base-300">
           <div class="flex items-center gap-3 overflow-hidden">
-            <div class="w-10 h-10 min-w-[40px] bg-primary rounded-box flex items-center justify-center text-primary-content font-black">
+            <div class="w-10 h-10 min-w-[40px] bg-accent rounded-box flex items-center justify-center text-accent-content font-black shadow-sm">
               R
             </div>
             <Show when={ui.sidebarOpen}>
-              <span class="text-xl font-black text-primary tracking-widest uppercase truncate">
+              <span class="text-xl font-black text-base-content tracking-widest uppercase truncate">
                 ReBase
               </span>
             </Show>
@@ -75,15 +75,19 @@ export default function MainLayout(props) {
             <A
               href={item.path}
               class={`
-                flex items-center gap-4 px-3 py-3 rounded-box transition-colors
-                ${ui.activeModule === item.module ? "bg-primary text-primary-content shadow-sm" : "text-base-content/70 hover:bg-base-200"}
-                ${!ui.sidebarOpen && !ui.isMobile ? "justify-center px-0" : ""}
+                flex items-center gap-4 px-3 py-3 rounded-box transition-all duration-200
+                ${
+                  ui.activeModule === item.module
+                    ? "bg-primary/10 text-primary font-semibold shadow-sm border-l-4 border-primary"
+                    : "text-base-content/70 hover:bg-base-200"
+                }
+                ${!ui.sidebarOpen && !ui.isMobile ? "justify-center px-0 border-l-0" : ""}
               `}
               title={!ui.sidebarOpen ? item.label : ""}
             >
               {item.icon}
               <Show when={ui.sidebarOpen}>
-                <span class="font-bold truncate">{item.label}</span>
+                <span class="truncate">{item.label}</span>
               </Show>
             </A>
           ))}
@@ -147,7 +151,9 @@ export default function MainLayout(props) {
             <button
               class="btn btn-sm btn-ghost btn-circle"
               onClick={toggleSidebar}
-              aria-label={ui.sidebarOpen ? "Collapse navigation" : "Open navigation"}
+              aria-label={
+                ui.sidebarOpen ? "Collapse navigation" : "Open navigation"
+              }
             >
               <Show when={!ui.isMobile} fallback={<Menu size={20} />}>
                 {ui.sidebarOpen ? (

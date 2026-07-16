@@ -12,7 +12,10 @@ const field = (preset, definition) => ({
   ...preset,
   ...definition,
   ui: { ...(preset.ui || {}), ...(definition.ui || {}) },
-  sortOptions: { ...(preset.sortOptions || {}), ...(definition.sortOptions || {}) },
+  sortOptions: {
+    ...(preset.sortOptions || {}),
+    ...(definition.sortOptions || {}),
+  },
 });
 
 const arrayPreset = (items, ui = {}) => ({
@@ -24,20 +27,52 @@ const arrayPreset = (items, ui = {}) => ({
   fetchable: false,
   omittable: false,
   default: false,
-  operators: ["IS NONE", "IS NOT NONE", "CONTAINS", "CONTAINSANY", "CONTAINSALL", "CONTAINSNONE"],
+  operators: [
+    "IS NONE",
+    "IS NOT NONE",
+    "CONTAINS",
+    "CONTAINSANY",
+    "CONTAINSALL",
+    "CONTAINSNONE",
+  ],
   ui,
 });
 
 const PRESETS = Object.freeze({
   string: {
     type: "string",
-    operators: ["IS NONE", "IS NOT NONE", "=", "!=", "?=", "STARTS WITH", "ENDS WITH", "CONTAINS", "CONTAINSNOT", "IN", "NOT IN"],
+    operators: [
+      "IS NONE",
+      "IS NOT NONE",
+      "=",
+      "!=",
+      "?=",
+      "STARTS WITH",
+      "ENDS WITH",
+      "CONTAINS",
+      "CONTAINSNOT",
+      "IN",
+      "NOT IN",
+    ],
     sortOptions: { collate: true, numeric: true },
     ui: { input: "text" },
   },
   number: {
     type: "number",
-    operators: ["IS NONE", "IS NOT NONE", "=", "!=", ">", "<", ">=", "<=", "IN", "NOT IN", "INSIDE", "OUTSIDE"],
+    operators: [
+      "IS NONE",
+      "IS NOT NONE",
+      "=",
+      "!=",
+      ">",
+      "<",
+      ">=",
+      "<=",
+      "IN",
+      "NOT IN",
+      "INSIDE",
+      "OUTSIDE",
+    ],
     ui: { input: "number", step: "any" },
   },
   boolean: {
@@ -47,7 +82,20 @@ const PRESETS = Object.freeze({
   },
   datetime: {
     type: "datetime",
-    operators: ["IS NONE", "IS NOT NONE", "=", "!=", ">", "<", ">=", "<=", "IN", "NOT IN", "INSIDE", "OUTSIDE"],
+    operators: [
+      "IS NONE",
+      "IS NOT NONE",
+      "=",
+      "!=",
+      ">",
+      "<",
+      ">=",
+      "<=",
+      "IN",
+      "NOT IN",
+      "INSIDE",
+      "OUTSIDE",
+    ],
     ui: { input: "datetime-local" },
   },
   record: {
@@ -61,7 +109,7 @@ export const USER_CONFIG = Object.freeze({
   domain: "user",
   table: "user",
   ui: {
-    title: "Topology Ledger",
+    title: "USER MANAGEMENT",
     description: "Build a safe, type-aware view of the user domain.",
     entityLabel: "node",
     entityLabelPlural: "nodes",
@@ -101,7 +149,15 @@ export const USER_CONFIG = Object.freeze({
       select: "email",
       filter: "email",
       sort: "email",
-      operators: ["=", "!=", "STARTS WITH", "IN", "NOT IN", "IS NONE", "IS NOT NONE"],
+      operators: [
+        "=",
+        "!=",
+        "STARTS WITH",
+        "IN",
+        "NOT IN",
+        "IS NONE",
+        "IS NOT NONE",
+      ],
       ui: { input: "email", placeholder: "name@example.com" },
     }),
     field(PRESETS.boolean, {
@@ -170,8 +226,16 @@ export const USER_CONFIG = Object.freeze({
   ],
   defaultState: {
     page: 1,
-    limit: 25,
-    select: ["id", "name", "email", "login_access", "parent_count", "dominate_count", "created_at"],
+    limit: 10,
+    select: [
+      "id",
+      "name",
+      "email",
+      "login_access",
+      "parent_count",
+      "dominate_count",
+      "created_at",
+    ],
     filters: [],
     sorts: [{ field: "created_at", order: "DESC" }],
     fetch: [],
