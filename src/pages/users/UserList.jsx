@@ -8,31 +8,12 @@ import DataTable from "../../components/DataTable";
 import Pagination from "../../components/Pagination";
 import ExportPanel from "../../components/ExportPanel";
 import { useUserDomain } from "./UserContext";
-import { fetchQuery } from "../../lib/surreal";
-import toast from "solid-toast";
 
 export default function UserList() {
-  const { setPageMeta, openModal } = useUI();
+  const { setPageMeta } = useUI();
   const domain = useUserDomain();
 
   createEffect(() => setPageMeta("Node Analytics", "users"));
-
-  const handleDelete = (id) => {
-    openModal(
-      "Eradicate Node?",
-      `Are you sure you want to permanently destroy the node [${id}]? This will sever all topological connections and cannot be reversed.`,
-      "error",
-      async () => {
-        try {
-          await fetchQuery("DELETE type::record($id);", { id });
-          toast.success(`Node ${id} eliminated successfully.`);
-          domain.invalidateDomain();
-        } catch (err) {
-          toast.error(`Matrix rejection: ${err.message}`);
-        }
-      },
-    );
-  };
 
   const tools = [
     {
@@ -139,7 +120,7 @@ export default function UserList() {
             <div class="flex items-center gap-2">
               <button
                 class="btn btn-sm btn-error shadow-sm"
-                onClick={() => toast.info("Bulk Delete not wired yet")}
+                onClick={() => domain.promptDelete(domain.selectedRecords())}
               >
                 <Trash2 size={14} /> Delete Selected
               </button>
@@ -159,7 +140,7 @@ export default function UserList() {
           error={domain.listQuery.error?.message}
           entityLabelPlural={domain.config.ui.entityLabelPlural}
           baseRoute="/users"
-          onDelete={handleDelete}
+          onDelete={(id) => domain.promptDelete([id])}
           isSelected={domain.isSelected}
           onRowClick={domain.toggleSelection}
         />

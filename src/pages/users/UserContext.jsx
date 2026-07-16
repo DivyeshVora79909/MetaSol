@@ -10,18 +10,26 @@ import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import { compileQuery } from "../../lib/queryEngine/index.js";
 import { fetchQuery } from "../../lib/surreal";
 import { USER_CONFIG as CONFIG } from "./config";
+import { useUI } from "../../store/ui";
+import toast from "solid-toast";
+
 const DomainContext = createContext();
+
 const clone = (value) => structuredClone(value);
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 const queryShape = ({ page: _page, ...state }) => state;
+
 export function UserProvider(props) {
   const queryClient = useQueryClient();
+  const { openModal } = useUI();
+
   const [draftQuery, setDraftQuery] = createStore(clone(CONFIG.defaultState));
   const [appliedQuery, setAppliedQuery] = createSignal(
     clone(CONFIG.defaultState),
   );
   const [selectedRecords, setSelectedRecords] = createSignal([]);
   const [compileError, setCompileError] = createSignal("");
+
   const compiledQuery = createMemo(() => {
     try {
       setCompileError("");
@@ -31,9 +39,11 @@ export function UserProvider(props) {
       return null;
     }
   });
+
   const hasPendingChanges = createMemo(
     () => !same(unwrap(draftQuery), appliedQuery()),
   );
+
   const commitQuery = () => {
     const next = clone(unwrap(draftQuery));
     const previous = appliedQuery();
@@ -51,6 +61,7 @@ export function UserProvider(props) {
       return false;
     }
   };
+
   const toggleSelection = (id) => {
     setSelectedRecords((prev) =>
       prev.includes(id)
@@ -58,12 +69,15 @@ export function UserProvider(props) {
         : [...prev, id],
     );
   };
+
   const clearSelection = () => setSelectedRecords([]);
   const isSelected = (id) => selectedRecords().includes(id);
+
   const resetDraft = () => {
     setCompileError("");
     setDraftQuery(clone(CONFIG.defaultState));
   };
+
   const setPage = (page) => {
     const totalPages = Math.max(
       1,
@@ -76,6 +90,7 @@ export function UserProvider(props) {
       page: nextPage,
     }));
   };
+
   const listQuery = createQuery(() => {
     const query = compiledQuery();
     return {
@@ -94,6 +109,7 @@ export function UserProvider(props) {
       placeholderData: (previous) => previous,
     };
   });
+
   createEffect(() => {
     const totalPages = Math.max(
       1,
@@ -101,10 +117,44 @@ export function UserProvider(props) {
     );
     if (appliedQuery().page > totalPages) setPage(totalPages);
   });
+
   const invalidateDomain = () =>
     queryClient.invalidateQueries({
       queryKey: [CONFIG.domain],
     });
+
+  const promptDelete = (ids, onSuccess) => {
+    if (!ids || ids.length === 0) return;
+
+    const isSingle = ids.length === 1;
+    const label = isSingle
+      ? CONFIG.ui.entityLabel
+      : CONFIG.ui.entityLabelPlural;
+    const capitalLabel = label.charAt(0).toUpperCase() + label.slice(1);
+
+    const message = isSingle
+      ? `Are you sure you want to permanently delete this ${label} [${ids[0]}]? This action cannot be reversed.`
+      : `Are you sure you want to permanently delete ${ids.length} selected ${label}? This action cannot be reversed.`;
+
+    openModal(`Delete ${capitalLabel}?`, message, "error", async () => {
+      try {
+        await fetchQuery(`DELETE ${CONFIG.table} WHERE id IN $ids;`, { ids });
+
+        toast.success(
+          isSingle
+            ? `${capitalLabel} ${ids[0]} eliminated successfully.`
+            : `${ids.length} ${label} eliminated successfully.`,
+        );
+
+        clearSelection();
+        invalidateDomain();
+        if (onSuccess) onSuccess();
+      } catch (err) {
+        toast.error(`Deletion failed: ${err.message}`);
+      }
+    });
+  };
+
   return (
     <DomainContext.Provider
       value={{
@@ -123,10 +173,12 @@ export function UserProvider(props) {
         toggleSelection,
         clearSelection,
         isSelected,
+        promptDelete,
       }}
     >
       {props.children}
     </DomainContext.Provider>
   );
 }
+
 export const useUserDomain = () => useContext(DomainContext);

@@ -1,15 +1,17 @@
 import { createEffect, Show, For } from "solid-js";
-import { useParams, A } from "@solidjs/router";
+import { useParams, A, useNavigate } from "@solidjs/router";
 import { createQuery } from "@tanstack/solid-query";
 import { fetchQuery } from "../../lib/surreal";
 import { useUI } from "../../store/ui";
-import { ArrowLeft, Edit2 } from "lucide-solid";
+import { useUserDomain } from "./UserContext";
+import { ArrowLeft, Edit2, Trash2 } from "lucide-solid";
 
-// Reusable micro-component to keep details uniform and copy-paste friendly
-const DetailRow = (props) => (
-  <div class="py-3 sm:py-4 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
-    <dt class="text-sm font-medium text-base-content/60">{props.label}</dt>
-    <dd class="mt-1 text-sm text-base-content sm:col-span-2 sm:mt-0">
+const DetailBlock = (props) => (
+  <div class="flex flex-col gap-1.5 rounded-box bg-base-200/30 p-4 border border-base-200/50 transition-colors hover:bg-base-200/50">
+    <dt class="text-xs font-bold uppercase tracking-wider text-base-content/50">
+      {props.label}
+    </dt>
+    <dd class="text-sm font-medium text-base-content break-words">
       {props.children}
     </dd>
   </div>
@@ -17,7 +19,9 @@ const DetailRow = (props) => (
 
 export default function UserView() {
   const params = useParams();
+  const navigate = useNavigate();
   const { setPageMeta } = useUI();
+  const domain = useUserDomain();
 
   createEffect(() => setPageMeta("View Details", "users"));
 
@@ -47,18 +51,34 @@ export default function UserView() {
 
   return (
     <main class="flex min-h-full flex-col gap-[var(--app-pad)] pb-[var(--app-pad)]">
+      {/* Header Area */}
       <header class="flex flex-wrap items-center justify-between gap-4 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm sm:px-5">
         <div class="flex items-center gap-4">
           <A href="/users" class="btn btn-square btn-sm btn-ghost">
             <ArrowLeft size={18} />
           </A>
-          <h1 class="text-xl font-bold tracking-tight">{params.id}</h1>
+          <div>
+            <h1 class="text-xl font-bold tracking-tight">{params.id}</h1>
+          </div>
         </div>
-        <A href={`/users/${params.id}/edit`} class="btn btn-primary btn-sm">
-          <Edit2 size={16} /> Edit Record
-        </A>
+
+        {/* Actions */}
+        <div class="flex items-center gap-2">
+          <button
+            class="btn btn-ghost btn-sm text-error"
+            onClick={() =>
+              domain.promptDelete([params.id], () => navigate("/users"))
+            }
+          >
+            <Trash2 size={16} /> <span class="hidden sm:inline">Delete</span>
+          </button>
+          <A href={`/users/${params.id}/edit`} class="btn btn-primary btn-sm">
+            <Edit2 size={16} /> <span class="hidden sm:inline">Edit</span>
+          </A>
+        </div>
       </header>
 
+      {/* Content Area */}
       <section class="card bg-base-100 shadow-sm border border-base-300 flex-1">
         <Show
           when={!nodeQuery.isLoading}
@@ -71,101 +91,106 @@ export default function UserView() {
           <Show
             when={nodeQuery.data}
             fallback={
-              <div class="card-body items-center text-error">
-                Record not found or access denied.
+              <div class="card-body items-center justify-center text-center py-12">
+                <div class="text-error font-bold text-lg mb-2">
+                  Record unavailable
+                </div>
+                <p class="text-base-content/60 text-sm">
+                  This record may have been deleted or you lack access
+                  permissions.
+                </p>
+                <A href="/users" class="btn btn-outline btn-sm mt-4">
+                  Return to List
+                </A>
               </div>
             }
           >
-            <div class="card-body p-0">
-              {/* Header section of the card */}
-              <div class="px-5 py-5 sm:px-6 border-b border-base-200">
-                <h3 class="text-base font-semibold leading-6 text-base-content">
-                  Record Information
+            <div class="card-body p-5 sm:p-6">
+              <div class="mb-4">
+                <h3 class="text-lg font-bold text-base-content">
+                  System Properties
                 </h3>
-                <p class="mt-1 max-w-2xl text-sm text-base-content/60">
-                  System details and topological relations.
+                <p class="text-sm text-base-content/60">
+                  Core identity vectors and access metadata.
                 </p>
               </div>
 
-              {/* Data List section */}
-              <div class="px-5 sm:px-6">
-                <dl class="divide-y divide-base-200">
-                  <DetailRow label="Name">{nodeQuery.data.name}</DetailRow>
+              <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <DetailBlock label="Name">{nodeQuery.data.name}</DetailBlock>
 
-                  <DetailRow label="Email Vector">
-                    {nodeQuery.data.email}
-                  </DetailRow>
+                <DetailBlock label="Email Vector">
+                  {nodeQuery.data.email}
+                </DetailBlock>
 
-                  <DetailRow label="Access Status">
-                    <span
-                      class={`badge badge-sm ${nodeQuery.data.login_access ? "badge-success" : "badge-error"}`}
-                    >
-                      {nodeQuery.data.login_access ? "Enabled" : "Disabled"}
-                    </span>
-                  </DetailRow>
+                <DetailBlock label="Access Status">
+                  <span
+                    class={`badge badge-sm ${nodeQuery.data.login_access ? "badge-success" : "badge-error"}`}
+                  >
+                    {nodeQuery.data.login_access ? "Enabled" : "Disabled"}
+                  </span>
+                </DetailBlock>
 
-                  <DetailRow label="Suspension Count">
-                    {nodeQuery.data.total_suspensions || 0}
-                  </DetailRow>
+                <DetailBlock label="Suspension Count">
+                  {nodeQuery.data.total_suspensions || 0}
+                </DetailBlock>
 
-                  <DetailRow label="Parent Groups">
-                    <Show
-                      when={nodeQuery.data.parent_groups?.length > 0}
-                      fallback={
-                        <span class="text-base-content/40 italic">None</span>
-                      }
-                    >
-                      <ul class="list-disc pl-5 m-0 space-y-1">
-                        <For each={nodeQuery.data.parent_groups}>
-                          {(g) => (
-                            <li>
-                              {g.name}{" "}
-                              <span class="text-xs opacity-50 ml-1">
-                                ({g.id})
-                              </span>
-                            </li>
-                          )}
-                        </For>
-                      </ul>
-                    </Show>
-                  </DetailRow>
+                <DetailBlock label="Parent Groups">
+                  <Show
+                    when={nodeQuery.data.parent_groups?.length > 0}
+                    fallback={
+                      <span class="text-base-content/40 italic">None</span>
+                    }
+                  >
+                    <ul class="list-disc pl-4 m-0 space-y-0.5">
+                      <For each={nodeQuery.data.parent_groups}>
+                        {(g) => (
+                          <li>
+                            {g.name}{" "}
+                            <span class="text-xs opacity-50 font-normal">
+                              ({g.id})
+                            </span>
+                          </li>
+                        )}
+                      </For>
+                    </ul>
+                  </Show>
+                </DetailBlock>
 
-                  <DetailRow label="Dominated Sub-Nodes">
-                    {nodeQuery.data.dominate_count || 0}
-                  </DetailRow>
+                <DetailBlock label="Dominated Sub-Nodes">
+                  {nodeQuery.data.dominate_count || 0}
+                </DetailBlock>
 
-                  <DetailRow label="Evaluated Permissions">
-                    <Show
-                      when={nodeQuery.data.permissions?.length > 0}
-                      fallback={
-                        <span class="text-base-content/40 italic">
-                          No permissions assigned
-                        </span>
-                      }
-                    >
-                      <div class="flex flex-wrap gap-1">
-                        <For each={nodeQuery.data.permissions}>
-                          {(p) => (
-                            <span class="badge badge-ghost badge-sm">{p}</span>
-                          )}
-                        </For>
-                      </div>
-                    </Show>
-                  </DetailRow>
+                <DetailBlock label="Evaluated Permissions">
+                  <Show
+                    when={nodeQuery.data.permissions?.length > 0}
+                    fallback={
+                      <span class="text-base-content/40 italic">
+                        No permissions
+                      </span>
+                    }
+                  >
+                    <div class="flex flex-wrap gap-1 mt-0.5">
+                      <For each={nodeQuery.data.permissions}>
+                        {(p) => (
+                          <span class="badge badge-ghost badge-sm">{p}</span>
+                        )}
+                      </For>
+                    </div>
+                  </Show>
+                </DetailBlock>
 
-                  <DetailRow label="Created At">
-                    <span class="font-mono">
-                      {formatDate(nodeQuery.data.created_at)}
-                    </span>
-                  </DetailRow>
+                <DetailBlock label="Created At">
+                  <span class="font-mono text-xs">
+                    {formatDate(nodeQuery.data.created_at)}
+                  </span>
+                </DetailBlock>
 
-                  <DetailRow label="Last Updated">
-                    <span class="font-mono">
-                      {formatDate(nodeQuery.data.updated_at)}
-                    </span>
-                  </DetailRow>
-                </dl>
-              </div>
+                <DetailBlock label="Last Updated">
+                  <span class="font-mono text-xs">
+                    {formatDate(nodeQuery.data.updated_at)}
+                  </span>
+                </DetailBlock>
+              </dl>
             </div>
           </Show>
         </Show>

@@ -28,7 +28,7 @@ export default function MainLayout(props) {
     {
       path: "/users",
       icon: <Users size={20} />,
-      label: "Access & Nodes",
+      label: "User Management",
       module: "users",
     },
   ];
