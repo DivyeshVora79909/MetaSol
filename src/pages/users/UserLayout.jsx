@@ -1,4 +1,4 @@
-import { UserProvider } from "./UserContext";
+import { UserTableProvider } from "./UserTableState";
 export default function UserLayout(props) {
-  return <UserProvider>{props.children}</UserProvider>;
+  return <UserTableProvider>{props.children}</UserTableProvider>;
 }

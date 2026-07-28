@@ -1,25 +1,20 @@
-import {
-  createContext,
-  createEffect,
-  createMemo,
-  createSignal,
-  useContext,
-} from "solid-js";
+import { createContext, createMemo, createSignal, useContext } from "solid-js";
 import { createStore, unwrap } from "solid-js/store";
-import { createQuery, useQueryClient } from "@tanstack/solid-query";
+import { useQueryClient } from "@tanstack/solid-query";
 import { compileQuery } from "../../lib/queryEngine/index.js";
 import { fetchQuery } from "../../lib/surreal";
 import { USER_CONFIG as CONFIG } from "./config";
 import { useUI } from "../../store/ui";
+import { userKeys } from "./user.keys";
 import toast from "solid-toast";
 
-const DomainContext = createContext();
+const TableStateContext = createContext();
 
 const clone = (value) => structuredClone(value);
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 const queryShape = ({ page: _page, ...state }) => state;
 
-export function UserProvider(props) {
+export function UserTableProvider(props) {
   const queryClient = useQueryClient();
   const { openModal } = useUI();
 
@@ -79,53 +74,12 @@ export function UserProvider(props) {
   };
 
   const setPage = (page) => {
-    const totalPages = Math.max(
-      1,
-      Math.ceil((listQuery.data?.total || 0) / appliedQuery().limit),
-    );
-    const nextPage = Math.max(1, Math.min(Number(page) || 1, totalPages));
-    setDraftQuery("page", nextPage);
-    setAppliedQuery((current) => ({
-      ...current,
-      page: nextPage,
-    }));
+    setDraftQuery("page", page);
+    setAppliedQuery((current) => ({ ...current, page }));
   };
-
-  const listQuery = createQuery(() => {
-    const query = compiledQuery();
-    return {
-      queryKey: [CONFIG.domain, "list", JSON.stringify(appliedQuery())],
-      enabled: Boolean(query),
-      queryFn: async () => {
-        const [dataResponse, countResponse] = await Promise.all([
-          fetchQuery(query.sql, query.variables),
-          fetchQuery(query.countSql, query.variables),
-        ]);
-        return {
-          data: dataResponse[0] || [],
-          total: Number(countResponse[0]?.[0]?.count || 0),
-        };
-      },
-      placeholderData: (previous) => previous,
-    };
-  });
-
-  createEffect(() => {
-    const totalPages = Math.max(
-      1,
-      Math.ceil((listQuery.data?.total || 0) / appliedQuery().limit),
-    );
-    if (appliedQuery().page > totalPages) setPage(totalPages);
-  });
-
-  const invalidateDomain = () =>
-    queryClient.invalidateQueries({
-      queryKey: [CONFIG.domain],
-    });
 
   const promptDelete = (ids, onSuccess) => {
     if (!ids || ids.length === 0) return;
-
     const isSingle = ids.length === 1;
     const label = isSingle
       ? CONFIG.ui.entityLabel
@@ -139,15 +93,15 @@ export function UserProvider(props) {
     openModal(`Delete ${capitalLabel}?`, message, "error", async () => {
       try {
         await fetchQuery(`DELETE ${CONFIG.table} WHERE id IN $ids;`, { ids });
-
         toast.success(
           isSingle
             ? `${capitalLabel} ${ids[0]} eliminated successfully.`
             : `${ids.length} ${label} eliminated successfully.`,
         );
-
         clearSelection();
-        invalidateDomain();
+
+        queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+
         if (onSuccess) onSuccess();
       } catch (err) {
         toast.error(`Deletion failed: ${err.message}`);
@@ -156,19 +110,18 @@ export function UserProvider(props) {
   };
 
   return (
-    <DomainContext.Provider
+    <TableStateContext.Provider
       value={{
         config: CONFIG,
         draftQuery,
         setDraftQuery,
         appliedQuery,
+        compiledQuery,
         commitQuery,
         resetDraft,
         setPage,
         hasPendingChanges,
         compileError,
-        listQuery,
-        invalidateDomain,
         selectedRecords,
         toggleSelection,
         clearSelection,
@@ -177,8 +130,8 @@ export function UserProvider(props) {
       }}
     >
       {props.children}
-    </DomainContext.Provider>
+    </TableStateContext.Provider>
   );
 }
 
-export const useUserDomain = () => useContext(DomainContext);
+export const useUserTableState = () => useContext(TableStateContext);

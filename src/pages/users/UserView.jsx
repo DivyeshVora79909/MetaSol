@@ -1,10 +1,12 @@
 import { createEffect, Show, For } from "solid-js";
 import { useParams, A, useNavigate } from "@solidjs/router";
 import { createQuery } from "@tanstack/solid-query";
+import { ArrowLeft, Edit2, Trash2 } from "lucide-solid";
+
 import { fetchQuery } from "../../lib/surreal";
 import { useUI } from "../../store/ui";
-import { useUserDomain } from "./UserContext";
-import { ArrowLeft, Edit2, Trash2 } from "lucide-solid";
+import { userKeys } from "./user.keys";
+import { useUserTableState } from "./UserTableState";
 
 const DetailBlock = (props) => (
   <div class="flex flex-col gap-1.5 rounded-box bg-base-200/30 p-4 border border-base-200/50 transition-colors hover:bg-base-200/50">
@@ -21,12 +23,13 @@ export default function UserView() {
   const params = useParams();
   const navigate = useNavigate();
   const { setPageMeta } = useUI();
-  const domain = useUserDomain();
+
+  const state = useUserTableState();
 
   createEffect(() => setPageMeta("View Details", "users"));
 
   const nodeQuery = createQuery(() => ({
-    queryKey: ["user", "deep", params.id],
+    queryKey: [...userKeys.detail(params.id), "view"],
     queryFn: async () => {
       const response = await fetchQuery(
         `
@@ -51,7 +54,6 @@ export default function UserView() {
 
   return (
     <main class="flex min-h-full flex-col gap-[var(--app-pad)] pb-[var(--app-pad)]">
-      {/* Header Area */}
       <header class="flex flex-wrap items-center justify-between gap-4 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm sm:px-5">
         <div class="flex items-center gap-4">
           <A href="/users" class="btn btn-square btn-sm btn-ghost">
@@ -62,12 +64,11 @@ export default function UserView() {
           </div>
         </div>
 
-        {/* Actions */}
         <div class="flex items-center gap-2">
           <button
             class="btn btn-ghost btn-sm text-error"
             onClick={() =>
-              domain.promptDelete([params.id], () => navigate("/users"))
+              state.promptDelete([params.id], () => navigate("/users"))
             }
           >
             <Trash2 size={16} /> <span class="hidden sm:inline">Delete</span>
@@ -78,7 +79,6 @@ export default function UserView() {
         </div>
       </header>
 
-      {/* Content Area */}
       <section class="card bg-base-100 shadow-sm border border-base-300 flex-1">
         <Show
           when={!nodeQuery.isLoading}
@@ -117,11 +117,9 @@ export default function UserView() {
 
               <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <DetailBlock label="Name">{nodeQuery.data.name}</DetailBlock>
-
                 <DetailBlock label="Email Vector">
                   {nodeQuery.data.email}
                 </DetailBlock>
-
                 <DetailBlock label="Access Status">
                   <span
                     class={`badge badge-sm ${nodeQuery.data.login_access ? "badge-success" : "badge-error"}`}
@@ -129,11 +127,9 @@ export default function UserView() {
                     {nodeQuery.data.login_access ? "Enabled" : "Disabled"}
                   </span>
                 </DetailBlock>
-
                 <DetailBlock label="Suspension Count">
                   {nodeQuery.data.total_suspensions || 0}
                 </DetailBlock>
-
                 <DetailBlock label="Parent Groups">
                   <Show
                     when={nodeQuery.data.parent_groups?.length > 0}
@@ -155,11 +151,9 @@ export default function UserView() {
                     </ul>
                   </Show>
                 </DetailBlock>
-
                 <DetailBlock label="Dominated Sub-Nodes">
                   {nodeQuery.data.dominate_count || 0}
                 </DetailBlock>
-
                 <DetailBlock label="Evaluated Permissions">
                   <Show
                     when={nodeQuery.data.permissions?.length > 0}
@@ -178,13 +172,11 @@ export default function UserView() {
                     </div>
                   </Show>
                 </DetailBlock>
-
                 <DetailBlock label="Created At">
                   <span class="font-mono text-xs">
                     {formatDate(nodeQuery.data.created_at)}
                   </span>
                 </DetailBlock>
-
                 <DetailBlock label="Last Updated">
                   <span class="font-mono text-xs">
                     {formatDate(nodeQuery.data.updated_at)}

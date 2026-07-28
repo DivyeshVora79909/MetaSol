@@ -1,19 +1,53 @@
 import { createEffect, Show } from "solid-js";
 import { A } from "@solidjs/router";
 import { Plus, Filter, Download, Upload, X, Trash2 } from "lucide-solid";
+import { createQuery } from "@tanstack/solid-query";
+
 import { useUI } from "../../store/ui";
+import { fetchQuery } from "../../lib/surreal";
+import { userKeys } from "./user.keys";
+import { useUserTableState } from "./UserTableState";
+
 import ModuleToolbar from "../../components/ModuleToolbar";
 import QueryBuilder from "../../components/QueryBuilder";
 import DataTable from "../../components/DataTable";
 import Pagination from "../../components/Pagination";
 import ExportPanel from "../../components/ExportPanel";
-import { useUserDomain } from "./UserContext";
 
 export default function UserList() {
   const { setPageMeta } = useUI();
-  const domain = useUserDomain();
+  const state = useUserTableState();
 
   createEffect(() => setPageMeta("Node Analytics", "users"));
+
+  const listQuery = createQuery(() => {
+    const query = state.compiledQuery();
+    return {
+      queryKey: userKeys.list(state.appliedQuery()),
+      enabled: Boolean(query),
+      queryFn: async () => {
+        const [dataResponse, countResponse] = await Promise.all([
+          fetchQuery(query.sql, query.variables),
+          fetchQuery(query.countSql, query.variables),
+        ]);
+        return {
+          data: dataResponse[0] || [],
+          total: Number(countResponse[0]?.[0]?.count || 0),
+        };
+      },
+      placeholderData: (previous) => previous,
+    };
+  });
+
+  createEffect(() => {
+    const totalPages = Math.max(
+      1,
+      Math.ceil((listQuery.data?.total || 0) / state.appliedQuery().limit),
+    );
+    if (state.appliedQuery().page > totalPages) {
+      state.setPage(totalPages);
+    }
+  });
 
   const tools = [
     {
@@ -23,22 +57,22 @@ export default function UserList() {
       badge: () => (
         <div class="flex gap-1 ml-2">
           <span class="badge badge-ghost badge-sm">
-            {domain.draftQuery.filters.length} filters
+            {state.draftQuery.filters.length} filters
           </span>
-          <Show when={domain.hasPendingChanges()}>
+          <Show when={state.hasPendingChanges()}>
             <span class="badge badge-warning badge-sm">Unsaved</span>
           </Show>
         </div>
       ),
       content: () => (
         <QueryBuilder
-          config={domain.config}
-          draft={domain.draftQuery}
-          setDraft={domain.setDraftQuery}
-          hasPendingChanges={domain.hasPendingChanges}
-          error={domain.compileError()}
-          onApply={domain.commitQuery}
-          onReset={domain.resetDraft}
+          config={state.config}
+          draft={state.draftQuery}
+          setDraft={state.setDraftQuery}
+          hasPendingChanges={state.hasPendingChanges}
+          error={state.compileError()}
+          onApply={state.commitQuery}
+          onReset={state.resetDraft}
         />
       ),
     },
@@ -48,9 +82,9 @@ export default function UserList() {
       label: "Export",
       content: () => (
         <ExportPanel
-          config={domain.config}
-          queryState={domain.appliedQuery()}
-          selectedIds={domain.selectedRecords()}
+          config={state.config}
+          queryState={state.appliedQuery()}
+          selectedIds={state.selectedRecords()}
         />
       ),
     },
@@ -75,15 +109,15 @@ export default function UserList() {
     <main class="flex min-h-full flex-col gap-[var(--app-pad)] pb-[var(--app-pad)]">
       <section class="overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-sm relative">
         <Show
-          when={domain.selectedRecords().length > 0}
+          when={state.selectedRecords().length > 0}
           fallback={
             <header class="flex items-center justify-between gap-4 px-4 py-3 sm:px-5 animate-in fade-in">
               <div class="min-w-0 flex-1">
                 <h1 class="truncate text-lg font-bold tracking-tight">
-                  {domain.config.ui.title}
+                  {state.config.ui.title}
                 </h1>
                 <p class="mt-0.5 truncate text-xs text-base-content/60">
-                  {domain.config.ui.description}
+                  {state.config.ui.description}
                 </p>
               </div>
               <A
@@ -92,7 +126,7 @@ export default function UserList() {
               >
                 <Plus size={18} />
                 <span class="hidden sm:inline">
-                  Create {domain.config.ui.entityLabel}
+                  Create {state.config.ui.entityLabel}
                 </span>
               </A>
             </header>
@@ -102,14 +136,14 @@ export default function UserList() {
             <div class="flex items-center gap-3">
               <button
                 class="btn btn-circle btn-sm btn-ghost text-base-content/70 hover:bg-base-200"
-                onClick={domain.clearSelection}
+                onClick={state.clearSelection}
                 title="Clear Selection"
               >
                 <X size={16} />
               </button>
               <div>
                 <h1 class="text-lg font-bold text-accent tracking-tight">
-                  {domain.selectedRecords().length} Selected
+                  {state.selectedRecords().length} Selected
                 </h1>
                 <p class="text-xs text-base-content/70">
                   Rows persisted across pagination
@@ -120,7 +154,7 @@ export default function UserList() {
             <div class="flex items-center gap-2">
               <button
                 class="btn btn-sm btn-error shadow-sm"
-                onClick={() => domain.promptDelete(domain.selectedRecords())}
+                onClick={() => state.promptDelete(state.selectedRecords())}
               >
                 <Trash2 size={14} /> Delete Selected
               </button>
@@ -133,25 +167,25 @@ export default function UserList() {
 
       <section class="min-h-96 flex-1">
         <DataTable
-          config={domain.config}
-          select={domain.appliedQuery().select}
-          data={domain.listQuery.data?.data}
-          isLoading={domain.listQuery.isLoading}
-          error={domain.listQuery.error?.message}
-          entityLabelPlural={domain.config.ui.entityLabelPlural}
+          config={state.config}
+          select={state.appliedQuery().select}
+          data={listQuery.data?.data}
+          isLoading={listQuery.isLoading}
+          error={listQuery.error?.message}
+          entityLabelPlural={state.config.ui.entityLabelPlural}
           baseRoute="/users"
-          onDelete={(id) => domain.promptDelete([id])}
-          isSelected={domain.isSelected}
-          onRowClick={domain.toggleSelection}
+          onDelete={(id) => state.promptDelete([id])}
+          isSelected={state.isSelected}
+          onRowClick={state.toggleSelection}
         />
       </section>
 
       <Pagination
-        page={domain.appliedQuery().page}
-        limit={domain.appliedQuery().limit}
-        total={domain.listQuery.data?.total}
-        label={domain.config.ui.entityLabelPlural}
-        onPageChange={domain.setPage}
+        page={state.appliedQuery().page}
+        limit={state.appliedQuery().limit}
+        total={listQuery.data?.total}
+        label={state.config.ui.entityLabelPlural}
+        onPageChange={state.setPage}
       />
     </main>
   );

@@ -1,193 +1,222 @@
-import { createSignal, createEffect, Show, For } from "solid-js";
+import { Show, createEffect } from "solid-js";
 import { useParams, useNavigate, A } from "@solidjs/router";
-import { createQuery } from "@tanstack/solid-query";
-import { fetchQuery } from "../../lib/surreal";
-import { useUserDomain } from "./UserContext";
-import { useUI } from "../../store/ui";
-import toast from "solid-toast";
+import { createQuery, useQueryClient } from "@tanstack/solid-query";
+import { createForm } from "@tanstack/solid-form";
 import { ArrowLeft, Save } from "lucide-solid";
+import toast from "solid-toast";
+
+import { fetchQuery } from "../../lib/surreal";
+import { useUI } from "../../store/ui";
+import { UserSchema } from "./user.schema";
+import { userKeys } from "./user.keys";
+import { USER_CONFIG as CONFIG } from "./config";
 
 export default function UserForm() {
   const params = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { setPageMeta } = useUI();
-  const { invalidateDomain } = useUserDomain();
 
-  const isEdit = () => !!params.id;
+  const isEdit = () => Boolean(params.id);
+
   createEffect(() =>
-    setPageMeta(isEdit() ? "Edit Node" : "Create Node", "users"),
+    setPageMeta(isEdit() ? "Edit User" : "Create User", "users"),
   );
 
-  const [name, setName] = createSignal("");
-  const [email, setEmail] = createSignal("");
-  const [group, setGroup] = createSignal("");
-  const [loginAccess, setLoginAccess] = createSignal(true);
-  const [submitting, setSubmitting] = createSignal(false);
-
-  // Dynamic Lookup: Fetch available groups for assignment
-  const groupsQuery = createQuery(() => ({
-    queryKey: ["groups", "lookup"],
-    queryFn: async () => {
-      const res = await fetchQuery(
-        `SELECT id, name FROM groups ORDER BY name ASC;`,
-      );
-      const data = res[0] || [];
-      if (!isEdit() && data.length > 0 && !group()) {
-        setGroup(data[0].id);
-      }
-      return data;
-    },
-  }));
-
-  // Fetch existing state if editing
-  const userQuery = createQuery(() => ({
-    queryKey: ["user", "single", params.id],
+  const recordQuery = createQuery(() => ({
+    queryKey: [...userKeys.detail(params.id), "form"],
     enabled: isEdit(),
     queryFn: async () => {
-      const response = await fetchQuery(
-        `SELECT name, email, login_access, (<-link<-groups)[0].id AS group_id FROM type::record($id);`,
+      const res = await fetchQuery(
+        `SELECT name, email, login_access FROM type::record($id);`,
         { id: params.id },
       );
-      const user = response[0]?.[0];
-      if (user) {
-        setName(user.name || "");
-        setEmail(user.email || "");
-        setLoginAccess(user.login_access ?? true);
-        if (user.group_id) setGroup(user.group_id);
-      }
-      return user || null;
+      return res[0]?.[0] || null;
     },
   }));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      if (isEdit()) {
-        await fetchQuery(
-          `
-          BEGIN TRANSACTION;
-          UPDATE type::record($id) SET name = $name, email = $email, login_access = $login_access;
-          COMMIT TRANSACTION;
-        `,
-          {
-            id: params.id,
-            name: name(),
-            email: email(),
-            login_access: loginAccess(),
-            group: group(),
-          },
-        );
-        toast.success("Record updated successfully.");
-      } else {
-        await fetchQuery(
-          `
-          BEGIN TRANSACTION;
-          LET $new_user = (CREATE user SET name = $name, email = $email, login_access = $login_access)[0];
-          COMMIT TRANSACTION;
-        `,
-          {
-            name: name(),
-            email: email(),
-            login_access: loginAccess(),
-            group: group(),
-          },
-        );
-        toast.success("Record created successfully.");
-      }
+  const emptyValues = { name: "", email: "", login_access: true };
 
-      await invalidateDomain();
-      navigate("/users");
-    } catch (err) {
-      toast.error(`Database error: ${err.message}`);
-    } finally {
-      setSubmitting(false);
+  const toFormValues = (record) => ({
+    name: record?.name || "",
+    email: record?.email || "",
+    login_access: record?.login_access ?? true,
+  });
+
+  const form = createForm(() => ({
+    validators: { onChange: UserSchema },
+    defaultValues: emptyValues,
+    onSubmit: async ({ value }) => {
+      try {
+        const payload = {
+          name: value.name,
+          email: value.email,
+          login_access: value.login_access,
+        };
+
+        if (isEdit()) {
+          const res = await fetchQuery(
+            `UPDATE type::record($id) MERGE $data RETURN AFTER;`,
+            {
+              id: params.id,
+              data: payload,
+            },
+          );
+
+          const updatedRecord = res[0]?.[0];
+
+          if (updatedRecord) {
+            queryClient.setQueryData(
+              [...userKeys.detail(params.id), "form"],
+              updatedRecord,
+            );
+            queryClient.invalidateQueries({
+              queryKey: [...userKeys.detail(params.id), "view"],
+            });
+          }
+
+          toast.success("Record updated successfully.");
+        } else {
+          await fetchQuery(
+            `
+            CREATE type::table($table) CONTENT $data;
+            UPDATE $auth SET refreshed_at = time::now();
+          `,
+            {
+              table: CONFIG.table,
+              data: payload,
+            },
+          );
+
+          toast.success("Record created successfully.");
+        }
+
+        queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+        navigate("/users");
+      } catch (err) {
+        toast.error(`Database error: ${err.message}`);
+      }
+    },
+  }));
+
+  let hydratedRecordId;
+  createEffect(() => {
+    const record = recordQuery.data;
+    if (isEdit() && record && hydratedRecordId !== params.id) {
+      form.reset(toFormValues(record));
+      hydratedRecordId = params.id;
     }
-  };
+  });
 
   return (
     <main class="flex min-h-full flex-col gap-[var(--app-pad)] pb-[var(--app-pad)]">
-      <header class="flex flex-wrap items-center gap-4 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm sm:px-5">
+      <header class="flex items-center gap-4 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm sm:px-6">
         <A href="/users" class="btn btn-square btn-sm btn-ghost">
           <ArrowLeft size={18} />
         </A>
         <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+            User management
+          </p>
           <h1 class="text-xl font-bold tracking-tight">
-            {isEdit() ? `Edit User: ${params.id}` : "Create New User"}
+            {isEdit() ? "Edit user" : "Create user"}
           </h1>
         </div>
       </header>
 
-      <section class="card bg-base-100 shadow-sm border border-base-300 flex-1">
+      <section class="card bg-base-100 shadow-sm border border-base-300 flex-1 max-w-3xl">
         <Show
-          when={!isEdit() || !userQuery.isLoading}
+          when={!isEdit() || !recordQuery.isLoading}
           fallback={
-            <div class="flex justify-center p-12">
-              <span class="loading loading-spinner text-primary loading-lg"></span>
+            <div class="p-12 text-center">
+              <span class="loading loading-spinner text-primary loading-lg" />
             </div>
           }
         >
-          <form onSubmit={handleSubmit} class="card-body">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div class="form-control w-full">
-                <label class="label">
-                  <span class="label-text font-semibold">Name</span>
-                </label>
-                <input
-                  type="text"
-                  class="input input-bordered w-full"
-                  value={name()}
-                  onInput={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            class="card-body space-y-4"
+          >
+            <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <form.Field
+                name="name"
+                children={(field) => (
+                  <div class="form-control w-full">
+                    <label class="label font-semibold" for="user-name">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      id="user-name"
+                      autocomplete="name"
+                      placeholder="Jane Doe"
+                      class={`input input-bordered w-full ${field().state.meta.errors.length ? "input-error" : ""}`}
+                      value={field().state.value}
+                      onBlur={field().handleBlur}
+                      onInput={(e) => field().handleChange(e.target.value)}
+                    />
+                    <Show when={field().state.meta.errors.length}>
+                      <span class="text-error text-xs mt-1">
+                        {field()
+                          .state.meta.errors.map((err) => err.message || err)
+                          .join(", ")}
+                      </span>
+                    </Show>
+                  </div>
+                )}
+              />
 
-              <div class="form-control w-full">
-                <label class="label">
-                  <span class="label-text font-semibold">Email</span>
-                </label>
-                <input
-                  type="email"
-                  class="input input-bordered w-full"
-                  value={email()}
-                  onInput={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div class="form-control w-full">
-                <label class="label">
-                  <span class="label-text font-semibold">Primary Group</span>
-                </label>
-                <select
-                  class="select select-bordered w-full"
-                  value={group()}
-                  onChange={(e) => setGroup(e.target.value)}
-                  disabled={groupsQuery.isLoading}
-                >
-                  <option value="" disabled>
-                    Select group...
-                  </option>
-                  <For each={groupsQuery.data}>
-                    {(g) => <option value={g.id}>{g.name}</option>}
-                  </For>
-                </select>
-              </div>
-
-              <div class="form-control w-full lg:col-span-3">
-                <label class="label cursor-pointer justify-start gap-4 h-full items-end pb-3">
-                  <input
-                    type="checkbox"
-                    class="toggle toggle-primary"
-                    checked={loginAccess()}
-                    onChange={(e) => setLoginAccess(e.target.checked)}
-                  />
-                  <span class="label-text font-semibold">
-                    Allow Login Access
-                  </span>
-                </label>
-              </div>
+              <form.Field
+                name="email"
+                children={(field) => (
+                  <div class="form-control w-full">
+                    <label class="label font-semibold" for="user-email">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      id="user-email"
+                      autocomplete="email"
+                      placeholder="jane@example.com"
+                      class={`input input-bordered w-full ${field().state.meta.errors.length ? "input-error" : ""}`}
+                      value={field().state.value}
+                      onBlur={field().handleBlur}
+                      onInput={(e) => field().handleChange(e.target.value)}
+                    />
+                    <Show when={field().state.meta.errors.length}>
+                      <span class="text-error text-xs mt-1">
+                        {field()
+                          .state.meta.errors.map((err) => err.message || err)
+                          .join(", ")}
+                      </span>
+                    </Show>
+                  </div>
+                )}
+              />
             </div>
+
+            <form.Field
+              name="login_access"
+              children={(field) => (
+                <div class="form-control w-full">
+                  <label class="label cursor-pointer justify-start gap-3 w-fit">
+                    <input
+                      type="checkbox"
+                      class="checkbox checkbox-primary"
+                      checked={field().state.value}
+                      onChange={(e) => field().handleChange(e.target.checked)}
+                    />
+                    <span class="label-text font-semibold">
+                      Allow login access
+                    </span>
+                  </label>
+                </div>
+              )}
+            />
 
             <div class="card-actions justify-end mt-8 border-t border-base-200 pt-6">
               <A href="/users" class="btn btn-ghost">
@@ -196,10 +225,10 @@ export default function UserForm() {
               <button
                 type="submit"
                 class="btn btn-primary"
-                disabled={submitting()}
+                disabled={!form.state.canSubmit || form.state.isSubmitting}
               >
                 <Show
-                  when={submitting()}
+                  when={form.state.isSubmitting}
                   fallback={
                     <>
                       <Save size={16} /> Save Record
