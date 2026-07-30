@@ -16,7 +16,6 @@ const SignUp = lazy(() => import("./pages/auth/SignUp"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 
 // User Domain
-const UserLayout = lazy(() => import("./pages/users/UserLayout"));
 const UserList = lazy(() => import("./pages/users/UserList"));
 const UserForm = lazy(() => import("./pages/users/UserForm"));
 const UserView = lazy(() => import("./pages/users/UserView"));
@@ -35,8 +34,7 @@ export default function App() {
         <Route path="/" component={MainLayout}>
           <Route path="/" component={Dashboard} />
 
-          {/* USER DOMAIN BOUNDARY */}
-          <Route path="/users" component={UserLayout}>
+          <Route path="/users">
             <Route path="/" component={UserList} />
             <Route path="/new" component={UserForm} />
             <Route path="/:id" component={UserView} />

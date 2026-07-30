@@ -111,7 +111,7 @@ export default function DataTable(props) {
                     <tr
                       class={`group transition-all cursor-pointer hover:bg-base-200/50 ${
                         props.isSelected?.(row.id)
-                          ? "bg-accent/30 border-l-4 border-l-accent"
+                          ? "bg-primary/10 border-l-4 border-l-primary"
                           : "border-l-4 border-l-transparent"
                       }`}
                       onClick={() =>

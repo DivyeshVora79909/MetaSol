@@ -1,26 +1,26 @@
 import { useUI } from "../../store/ui";
-import { SYSTEM_THEMES } from "../../lib/constants";
 
 export default function AuthLayout(props) {
-  const { ui, setAesthetic } = useUI();
+  const { ui, setActiveTheme, SYSTEM_THEMES } = useUI();
 
   return (
-    <div class="relative flex min-h-dvh items-center justify-center overflow-hidden bg-base-200 p-4">
-      {/* Aesthetic Background Accents */}
+    <div class="relative flex min-h-dvh items-center justify-center overflow-hidden bg-base-200 p-4 text-base-content">
+      {/* Aesthetic Background Accents (Uses injected CSS variables!) */}
       <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-      <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-secondary/10 rounded-full blur-3xl" />
+      <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-base-content/5 rounded-full blur-3xl" />
 
-      {/* Public Theme Controls */}
       <div class="absolute right-4 top-4 z-50">
         <select
           aria-label="Application theme"
           class="select select-sm select-bordered bg-base-100/95 shadow-sm backdrop-blur"
-          value={ui.theme}
-          onChange={(e) => setAesthetic("theme", e.target.value)}
+          value={ui.registry.activeId}
+          onChange={(e) => setActiveTheme(e.target.value)}
         >
-          {SYSTEM_THEMES.map((t) => (
-            <option value={t.id}>{t.label}</option>
-          ))}
+          <optgroup label="Select Theme">
+            {Object.entries(SYSTEM_THEMES).map(([id, theme]) => (
+              <option value={id}>{theme.name}</option>
+            ))}
+          </optgroup>
         </select>
       </div>
 

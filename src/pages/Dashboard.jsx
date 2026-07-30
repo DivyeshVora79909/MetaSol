@@ -1,7 +1,5 @@
-import { Show, createEffect } from "solid-js";
+import { Show } from "solid-js";
 import { createQuery } from "@tanstack/solid-query";
-import { useUI } from "../store/ui";
-import { fetchQuery } from "../lib/surreal";
 import {
   Activity,
   Users,
@@ -9,17 +7,13 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-solid";
+import PageShell from "../components/PageShell";
 
 export default function Dashboard() {
-  const { setPageMeta } = useUI();
-
-  // Child takes control: Claims its identity in the Global UI Matrix
-  createEffect(() => setPageMeta("Dashboard Matrix", "dashboard"));
-
   const metricsQuery = createQuery(() => ({
     queryKey: ["dashboard_metrics"],
     queryFn: async () => {
-      // Mocked payload representing a true O(1) CRM backend view
+      // Mocked payload
       return {
         total_orgs: 142,
         monthly_revenue: 145000,
@@ -29,7 +23,6 @@ export default function Dashboard() {
     },
   }));
 
-  // Reusable Micro-Component for Stat Cards
   const StatCard = (props) => (
     <div class="card bg-base-100 shadow-sm border border-base-300">
       <div class="card-body p-5">
@@ -61,88 +54,86 @@ export default function Dashboard() {
   );
 
   return (
-    <div class="flex h-full flex-col gap-[var(--app-pad)] pb-[var(--app-pad)]">
-      {/* 1. TOP METRICS ROW (Network Fueled) */}
-      <Show
-        when={!metricsQuery.isLoading}
-        fallback={
-          <div class="skeleton h-32 w-full rounded-box bg-base-300"></div>
-        }
-      >
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[var(--app-pad)]">
-          <StatCard
-            title="Total Organizations"
-            value={metricsQuery.data?.total_orgs}
-            icon={<Users size={20} />}
-            trend={4.2}
-          />
-          <StatCard
-            title="Monthly Revenue"
-            value={`$${metricsQuery.data?.monthly_revenue?.toLocaleString()}`}
-            icon={<Activity size={20} />}
-            trend={12.5}
-          />
-          <StatCard
-            title="Active Contracts"
-            value={metricsQuery.data?.active_pipelines}
-            icon={<FileText size={20} />}
-            trend={-2.1}
-          />
-          <StatCard
-            title="System Nodes"
-            value="8"
-            icon={<Activity size={20} />}
-          />
-        </div>
-      </Show>
+    <PageShell title="Dashboard Matrix">
+      <div class="flex h-full flex-col gap-5">
+        {/* METRICS ROW */}
+        <Show
+          when={!metricsQuery.isLoading}
+          fallback={
+            <div class="skeleton h-32 w-full rounded-box bg-base-300"></div>
+          }
+        >
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <StatCard
+              title="Total Organizations"
+              value={metricsQuery.data?.total_orgs}
+              icon={<Users size={20} />}
+              trend={4.2}
+            />
+            <StatCard
+              title="Monthly Revenue"
+              value={`$${metricsQuery.data?.monthly_revenue?.toLocaleString()}`}
+              icon={<Activity size={20} />}
+              trend={12.5}
+            />
+            <StatCard
+              title="Active Contracts"
+              value={metricsQuery.data?.active_pipelines}
+              icon={<FileText size={20} />}
+              trend={-2.1}
+            />
+            <StatCard
+              title="System Nodes"
+              value="8"
+              icon={<Activity size={20} />}
+            />
+          </div>
+        </Show>
 
-      {/* 2. MAIN WORKSPACE GRID */}
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-[var(--app-pad)] flex-1">
-        {/* Main Chart / Activity Area */}
-        <div class="card border border-base-300 bg-base-100 shadow-sm lg:col-span-2">
-          <div class="card-body p-6">
-            <h2 class="card-title text-lg border-b border-base-200 pb-2">
-              Revenue Topology
-            </h2>
-            <div class="flex-1 flex items-center justify-center min-h-[300px] border-2 border-dashed border-base-300 rounded-box mt-4 bg-base-200/30">
-              <span class="text-base-content/50 font-mono text-sm">
-                Chart projection node pending...
-              </span>
+        {/* WORKSPACE GRID */}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 flex-1">
+          <div class="card border border-base-300 bg-base-100 shadow-sm lg:col-span-2">
+            <div class="card-body p-6">
+              <h2 class="card-title text-lg border-b border-base-200 pb-2">
+                Revenue Topology
+              </h2>
+              <div class="flex-1 flex items-center justify-center min-h-[300px] border-2 border-dashed border-base-300 rounded-box mt-4 bg-base-200/30">
+                <span class="text-base-content/50 font-mono text-sm">
+                  Chart projection node pending...
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Secondary Feed Area */}
-        <div class="card border border-base-300 bg-base-100 shadow-sm">
-          <div class="card-body p-6">
-            <h2 class="card-title text-lg border-b border-base-200 pb-2">
-              Recent Mutations
-            </h2>
-
-            <ul class="mt-4 flex flex-col gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <li class="flex items-start gap-3">
-                  <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
-                    <span class="text-primary text-xs font-bold">U{i}</span>
-                  </div>
-                  <div>
-                    <p class="text-sm font-bold">System Node Authenticated</p>
-                    <p class="text-xs text-base-content/60">
-                      Updated the lifecycle status of Org: Tesla to 'Active'.
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-            <div class="mt-auto pt-4">
-              <button class="btn btn-outline btn-sm w-full">
-                View Full Ledger
-              </button>
+          <div class="card border border-base-300 bg-base-100 shadow-sm">
+            <div class="card-body p-6">
+              <h2 class="card-title text-lg border-b border-base-200 pb-2">
+                Recent Mutations
+              </h2>
+              <ul class="mt-4 flex flex-col gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <li class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
+                      <span class="text-primary text-xs font-bold">U{i}</span>
+                    </div>
+                    <div>
+                      <p class="text-sm font-bold">System Node Authenticated</p>
+                      <p class="text-xs text-base-content/60">
+                        Updated lifecycle status to 'Active'.
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div class="mt-auto pt-4">
+                <button class="btn btn-outline btn-sm w-full">
+                  View Full Ledger
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

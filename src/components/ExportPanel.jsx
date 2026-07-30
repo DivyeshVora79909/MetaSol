@@ -17,6 +17,8 @@ export default function ExportPanel(props) {
   const [limit, setLimit] = createSignal(100);
   const [isExporting, setIsExporting] = createSignal(false);
 
+  const maxExportLimit = () => props.config?.capabilities?.maxLimit ?? 1000;
+
   createEffect(() => {
     if (props.selectedIds.length === 0 && mode() === "selection") {
       setMode("query");
@@ -35,7 +37,7 @@ export default function ExportPanel(props) {
         baseState.sorts = [];
         baseState.filters = [{ field: "id", operator: "IN", value: cleanIds }];
       } else {
-        baseState.limit = Math.min(Math.max(1, limit()), 5000);
+        baseState.limit = Math.min(Math.max(1, limit()), maxExportLimit());
       }
 
       const compiled = compileQuery(props.config, baseState);
@@ -57,13 +59,13 @@ export default function ExportPanel(props) {
   };
 
   return (
-    <div class="p-5 sm:p-6 border-t border-base-200 bg-base-100/30">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <div class="space-y-4">
-          <h3 class="text-sm font-semibold text-base-content/80 uppercase tracking-wider">
+    <div class="p-4 sm:p-6 border-t border-base-200 bg-base-100/30">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-0">
+        <div class="space-y-4 lg:pr-8">
+          <h3 class="text-xs sm:text-sm font-bold text-base-content/80 uppercase tracking-wider">
             Export Scope
           </h3>
-          <div class="flex flex-col gap-3">
+          <div class="flex flex-col gap-2.5">
             <label
               class={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
                 mode() === "query"
@@ -73,15 +75,15 @@ export default function ExportPanel(props) {
             >
               <input
                 type="radio"
-                class="radio radio-primary radio-sm"
+                class="radio radio-primary radio-sm shrink-0"
                 checked={mode() === "query"}
                 onChange={() => setMode("query")}
               />
-              <div class="flex-1">
-                <span class="text-sm font-semibold text-base-content block">
+              <div class="min-w-0 flex-1">
+                <span class="text-sm font-semibold text-base-content block truncate">
                   Filtered Query
                 </span>
-                <span class="text-xs text-base-content/60 block mt-0.5">
+                <span class="text-xs text-base-content/60 block mt-0.5 truncate">
                   Current view parameters
                 </span>
               </div>
@@ -98,16 +100,16 @@ export default function ExportPanel(props) {
             >
               <input
                 type="radio"
-                class="radio radio-primary radio-sm"
+                class="radio radio-primary radio-sm shrink-0"
                 checked={mode() === "selection"}
                 onChange={() => setMode("selection")}
                 disabled={props.selectedIds.length === 0}
               />
-              <div class="flex-1">
-                <span class="text-sm font-semibold text-base-content block">
+              <div class="min-w-0 flex-1">
+                <span class="text-sm font-semibold text-base-content block truncate">
                   Selected Records
                 </span>
-                <span class="text-xs text-base-content/60 block mt-0.5">
+                <span class="text-xs text-base-content/60 block mt-0.5 truncate">
                   {props.selectedIds.length > 0
                     ? `${props.selectedIds.length} rows selected`
                     : "No selection"}
@@ -117,52 +119,52 @@ export default function ExportPanel(props) {
           </div>
         </div>
 
-        <div class="space-y-4">
-          <h3 class="text-sm font-semibold text-base-content/80 uppercase tracking-wider">
+        <div class="space-y-4 pt-6 border-t border-base-200 lg:pt-0 lg:border-t-0 lg:border-l lg:px-8">
+          <h3 class="text-xs sm:text-sm font-bold text-base-content/80 uppercase tracking-wider">
             File Format
           </h3>
-          <div class="grid grid-cols-3 gap-3">
+          <div class="grid grid-cols-3 gap-2 sm:gap-3">
             <button
               type="button"
-              class={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border transition-all h-24 ${
+              class={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border transition-all h-20 sm:h-24 ${
                 format() === "csv"
                   ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/20"
                   : "border-base-200 hover:border-base-300 hover:bg-base-200/50 text-base-content/70"
               }`}
               onClick={() => setFormat("csv")}
             >
-              <FileText size={24} />
+              <FileText size={20} class="sm:w-6 sm:h-6" />
               <span class="text-xs font-semibold">CSV</span>
             </button>
             <button
               type="button"
-              class={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border transition-all h-24 ${
+              class={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border transition-all h-20 sm:h-24 ${
                 format() === "xlsx"
                   ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/20"
                   : "border-base-200 hover:border-base-300 hover:bg-base-200/50 text-base-content/70"
               }`}
               onClick={() => setFormat("xlsx")}
             >
-              <FileSpreadsheet size={24} />
+              <FileSpreadsheet size={20} class="sm:w-6 sm:h-6" />
               <span class="text-xs font-semibold">Excel</span>
             </button>
             <button
               type="button"
-              class={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border transition-all h-24 ${
+              class={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border transition-all h-20 sm:h-24 ${
                 format() === "json"
                   ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/20"
                   : "border-base-200 hover:border-base-300 hover:bg-base-200/50 text-base-content/70"
               }`}
               onClick={() => setFormat("json")}
             >
-              <FileJson size={24} />
+              <FileJson size={20} class="sm:w-6 sm:h-6" />
               <span class="text-xs font-semibold">JSON</span>
             </button>
           </div>
         </div>
 
-        <div class="space-y-4 lg:border-l lg:border-base-200 lg:pl-8">
-          <h3 class="text-sm font-semibold text-base-content/80 uppercase tracking-wider">
+        <div class="space-y-4 pt-6 border-t border-base-200 lg:pt-0 lg:border-t-0 lg:border-l lg:pl-8">
+          <h3 class="text-xs sm:text-sm font-bold text-base-content/80 uppercase tracking-wider">
             Options
           </h3>
           <div class="form-control w-full">
@@ -171,22 +173,29 @@ export default function ExportPanel(props) {
                 Maximum Rows
               </span>
               <span class="label-text-alt text-xs font-medium text-base-content/50">
-                Max: 5000
+                Max: {maxExportLimit()}
               </span>
             </label>
             <input
               type="number"
               min="1"
-              max="5000"
+              max={maxExportLimit()}
               class="input input-bordered w-full text-sm font-mono"
               value={
                 mode() === "selection" ? props.selectedIds.length : limit()
               }
-              onInput={(e) => setLimit(Number(e.target.value))}
               disabled={mode() === "selection"}
+              onInput={(e) => setLimit(e.target.value)}
+              onBlur={(e) => {
+                let val = parseInt(e.target.value, 10);
+                if (isNaN(val) || val < 1) val = 1;
+                if (val > maxExportLimit()) val = maxExportLimit();
+                setLimit(val);
+                e.target.value = val;
+              }}
             />
             <Show when={mode() === "selection"}>
-              <span class="text-xs text-primary mt-2 block">
+              <span class="text-xs text-primary mt-2 block font-medium">
                 Locked to selection count
               </span>
             </Show>
@@ -194,9 +203,9 @@ export default function ExportPanel(props) {
         </div>
       </div>
 
-      <div class="flex justify-end pt-6 mt-6 border-t border-base-200">
+      <div class="flex sm:justify-end pt-6 mt-6 border-t border-base-200">
         <button
-          class="btn btn-primary min-w-[160px] shadow-sm"
+          class="btn btn-primary w-full sm:w-auto sm:min-w-[160px] shadow-sm"
           onClick={handleExport}
           disabled={isExporting()}
         >
@@ -208,7 +217,7 @@ export default function ExportPanel(props) {
               </>
             }
           >
-            <span class="loading loading-spinner loading-sm"></span>
+            <span class="loading loading-spinner loading-sm"></span>{" "}
             Processing...
           </Show>
         </button>

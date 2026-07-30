@@ -19,9 +19,9 @@ export default function ModuleToolbar(props) {
               <button
                 type="button"
                 onClick={() => toggleTab(tool.id)}
-                class={`btn btn-sm transition-colors ${
+                class={`btn btn-sm transition-all ${
                   isActive()
-                    ? "btn-secondary"
+                    ? "bg-primary/10 text-primary border-transparent ring-1 ring-primary/30 hover:bg-primary/20 hover:border-transparent"
                     : "btn-ghost text-base-content/70 hover:bg-base-200 hover:text-base-content"
                 }`}
                 aria-expanded={isActive()}
@@ -43,11 +43,12 @@ export default function ModuleToolbar(props) {
         >
           <div class="flex items-center justify-between border-b border-base-200/50 bg-base-200/10 px-4 py-2 sm:px-5">
             <span class="text-xs font-bold uppercase tracking-wider text-base-content/50">
-              Configuration Stage
+              {props.tools.find((t) => t.id === activeTab())?.label}{" "}
+              Configuration
             </span>
             <button
               type="button"
-              class="btn btn-ghost btn-xs btn-square text-base-content/60 hover:text-error"
+              class="btn btn-ghost btn-xs btn-square text-base-content/60 hover:bg-error/10 hover:text-error transition-colors"
               onClick={() => setActiveTab(null)}
               aria-label="Close panel"
             >

@@ -168,17 +168,6 @@ export const USER_CONFIG = Object.freeze({
       sort: "login_access",
     }),
     field(PRESETS.number, {
-      id: "total_suspensions",
-      label: "Suspensions",
-      select: "total_suspensions",
-      filter: "total_suspensions",
-      sort: "total_suspensions",
-      default: false,
-    }),
-    // Computed count fields are what the list projects. Their matching array
-    // fields below remain independently filterable without sending raw arrays
-    // to a table cell.
-    field(PRESETS.number, {
       id: "dominate_count",
       label: "Sub-Nodes",
       select: "array::len(dominates ?? []) AS dominate_count",
@@ -208,6 +197,14 @@ export const USER_CONFIG = Object.freeze({
       filter: "created_at",
       sort: "created_at",
     }),
+    field(PRESETS.datetime, {
+      id: "updated_at",
+      label: "Last Updated",
+      select: "updated_at",
+      filter: "updated_at",
+      sort: "updated_at",
+      default: false,
+    }),
     field(arrayPreset("record", { placeholder: "group:one" }), {
       id: "parents",
       label: "Has parent group",
@@ -222,6 +219,24 @@ export const USER_CONFIG = Object.freeze({
       id: "permissions",
       label: "Has permission",
       filter: "permissions",
+    }),
+    field(PRESETS.record, {
+      id: "a_favorite_primitive",
+      label: "Fav Primitive",
+      select: "a_favorite_primitive",
+      filter: "a_favorite_primitive",
+      sort: "a_favorite_primitive",
+      default: false,
+    }),
+    field(arrayPreset("record", { placeholder: "user:alice" }), {
+      id: "a_friends",
+      label: "Friends",
+      filter: "a_friends",
+    }),
+    field(arrayPreset("record", { placeholder: "test_primitive:1" }), {
+      id: "a_watched_items",
+      label: "Watched Items",
+      filter: "a_watched_items",
     }),
   ],
   defaultState: {

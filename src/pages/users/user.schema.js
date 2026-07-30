@@ -11,4 +11,8 @@ export const UserSchema = v.object({
     v.email("Invalid email format"),
   ),
   login_access: v.boolean(),
+
+  a_favorite_primitive: v.optional(v.nullable(v.string())),
+  a_friends: v.optional(v.array(v.string()), []),
+  a_watched_items: v.optional(v.array(v.string()), []),
 });

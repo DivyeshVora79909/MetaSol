@@ -10,13 +10,9 @@ import {
 } from "lucide-solid";
 import { fetchQuery } from "../lib/surreal";
 
-export default function RelationField(props) {
+export default function MultiRelationField(props) {
   let containerRef;
   let searchInputRef;
-
-  const cols = () =>
-    props.config.columns || [{ key: "id", label: "Record ID" }];
-  const searchCols = () => props.config.searchFields || ["id"];
 
   const [isOpen, setIsOpen] = createSignal(false);
   const [searchInput, setSearchInput] = createSignal("");
@@ -24,12 +20,23 @@ export default function RelationField(props) {
   const [page, setPage] = createSignal(1);
   const limit = 5;
 
+  // THE LOCAL DICTIONARY: Memorizes records so we don't fetch on every click
+  const [recordDict, setRecordDict] = createSignal({});
+
+  const safeValue = () =>
+    Array.isArray(props.value) ? [...props.value].map(String) : [];
+
+  // Identify which IDs we don't have labels for yet
+  const missingIds = () => safeValue().filter((id) => !recordDict()[id]);
+
   createEffect(() => {
-    const handleClick = (e) => {
+    const handleClickOutside = (e) => {
       if (containerRef && !containerRef.contains(e.target)) setIsOpen(false);
     };
-    document.addEventListener("pointerdown", handleClick);
-    onCleanup(() => document.removeEventListener("pointerdown", handleClick));
+    document.addEventListener("pointerdown", handleClickOutside);
+    onCleanup(() =>
+      document.removeEventListener("pointerdown", handleClickOutside),
+    );
   });
 
   createEffect(() => {
@@ -43,12 +50,12 @@ export default function RelationField(props) {
   });
 
   const stopEvent = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e?.preventDefault();
+    e?.stopPropagation();
   };
 
   const triggerSearch = (e) => {
-    if (e) stopEvent(e);
+    stopEvent(e);
     setActiveSearch(searchInput().trim());
     setPage(1);
   };
@@ -57,27 +64,31 @@ export default function RelationField(props) {
     if (e.key === "Enter") triggerSearch(e);
   };
 
-  const selectedQuery = createQuery(() => ({
-    queryKey: ["relation_selected", props.value],
-    enabled: !!props.value,
+  // HYDRATION: ONLY fetches records we haven't seen yet
+  const hydrationQuery = createQuery(() => ({
+    queryKey: ["multi_hydrate", props.config.table, missingIds()],
+    enabled: missingIds().length > 0,
     queryFn: async () => {
-      const res = await fetchQuery(`SELECT * FROM type::record($id);`, {
-        id: props.value,
+      const sql = `SELECT * FROM type::table($table) WHERE id IN $ids.map(|$id| type::record($id));`;
+      const res = await fetchQuery(sql, {
+        table: props.config.table,
+        ids: missingIds(),
       });
-      return res[0]?.[0] || null;
+      return res[0] || [];
     },
     staleTime: 1000 * 60 * 5,
   }));
 
-  const recordsQuery = createQuery(() => ({
-    queryKey: ["relation_lookup", props.config.table, activeSearch(), page()],
+  // SEARCH LOOKUP
+  const lookupQuery = createQuery(() => ({
+    queryKey: ["multi_lookup", props.config.table, activeSearch(), page()],
     enabled: isOpen(),
     queryFn: async () => {
       const term = activeSearch();
       const start = (page() - 1) * limit;
       let whereClause = "";
-      if (term && searchCols().length > 0) {
-        const conditions = searchCols().map(
+      if (term && props.config.searchFields?.length > 0) {
+        const conditions = props.config.searchFields.map(
           (f) =>
             `string::contains(string::lowercase(type::string(${f} ?? "")), string::lowercase($term))`,
         );
@@ -88,85 +99,119 @@ export default function RelationField(props) {
       const data = res[0] || [];
       return { data: data.slice(0, limit), hasNext: data.length > limit };
     },
-    placeholderData: (prev) => prev,
   }));
 
-  const handleSelect = (e, id) => {
+  // Update Dictionary when new data arrives from EITHER query
+  createEffect(() => {
+    const data1 = hydrationQuery.data;
+    const data2 = lookupQuery.data?.data;
+    if (data1 || data2) {
+      setRecordDict((prev) => {
+        const next = { ...prev };
+        data1?.forEach((r) => (next[String(r.id)] = r));
+        data2?.forEach((r) => (next[String(r.id)] = r));
+        return next;
+      });
+    }
+  });
+
+  const toggleItem = (e, id) => {
     stopEvent(e);
-    props.onChange(id);
-    setIsOpen(false);
+    const strId = String(id);
+    const current = safeValue();
+    if (current.includes(strId)) {
+      props.onChange(current.filter((i) => i !== strId));
+    } else {
+      props.onChange([...current, strId]);
+    }
   };
 
-  const clearSelection = (e) => {
+  const removeItem = (e, id) => {
     stopEvent(e);
-    props.onChange(null);
+    props.onChange(safeValue().filter((i) => i !== String(id)));
   };
 
-  const renderSelectedLabel = () => {
-    if (selectedQuery.isLoading)
-      return <span class="loading loading-dots loading-xs text-primary"></span>;
-    if (!selectedQuery.data)
-      return (
-        <span class="text-error font-bold">
-          Record not found ({String(props.value)})
-        </span>
-      );
-    return cols()
-      .map((col) => String(selectedQuery.data[col.key] ?? "—"))
+  const clearAll = (e) => {
+    stopEvent(e);
+    props.onChange([]);
+  };
+
+  const renderLabel = (record) =>
+    props.config.columns
+      .map((col) => String(record[col.key] ?? "—"))
       .join(" • ");
-  };
 
   return (
     <div class="relative w-full text-sm" ref={containerRef}>
-      <button
-        type="button"
-        class={`flex items-center justify-between w-full min-h-10 px-3 border rounded-btn bg-base-100 transition-all ${
-          isOpen()
-            ? "border-primary ring-1 ring-primary/20"
-            : "border-base-300 hover:border-base-content/30"
-        }`}
-        onClick={() => setIsOpen(!isOpen())}
+      <div
+        class={`flex flex-col min-h-10 w-full border rounded-btn bg-base-100 transition-colors cursor-pointer ${isOpen() ? "border-primary ring-1 ring-primary/20" : "border-base-300 hover:border-base-content/30"}`}
+        onClick={(e) => {
+          stopEvent(e);
+          setIsOpen(!isOpen());
+        }}
       >
-        <div class="flex-1 text-left truncate pr-2">
-          <Show
-            when={props.value}
-            fallback={
-              <span class="text-base-content/40">
-                {props.config.placeholder || "Select record..."}
-              </span>
-            }
-          >
-            <span class="font-medium text-base-content">
-              {renderSelectedLabel()}
+        <div class="flex items-center justify-between p-2 pb-1 border-b border-transparent">
+          <span class="text-[10px] font-bold text-base-content/50 uppercase tracking-wider">
+            {safeValue().length} Selected
+          </span>
+          <div class="flex items-center gap-1 shrink-0 text-base-content/40">
+            <Show when={safeValue().length > 0}>
+              <button
+                type="button"
+                class="p-1 hover:text-error rounded-md transition-colors"
+                onClick={clearAll}
+              >
+                <X size={14} />
+              </button>
+              <div class="w-[1px] h-4 bg-base-300 mx-1"></div>
+            </Show>
+            <ChevronsUpDown size={14} />
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-1.5 p-2 pt-0 min-h-8">
+          <Show when={safeValue().length === 0}>
+            <span class="text-base-content/40 my-auto">
+              {props.config.placeholder || "Select records..."}
             </span>
           </Show>
-        </div>
-        <div class="flex items-center gap-1 shrink-0 text-base-content/40">
-          <Show when={props.value}>
-            <div
-              class="p-1 hover:text-error rounded-md transition-colors cursor-pointer"
-              onClick={clearSelection}
-            >
-              <X size={14} />
-            </div>
-            <div class="w-[1px] h-4 bg-base-300 mx-1"></div>
+          <Show when={hydrationQuery.isFetching}>
+            <span class="loading loading-dots loading-xs text-primary my-auto"></span>
           </Show>
-          <ChevronsUpDown size={14} />
+
+          <For each={safeValue()}>
+            {(id) => {
+              const record = recordDict()[id];
+              return (
+                <div class="flex items-center gap-1 bg-base-200 border border-base-300 rounded-md pl-2 pr-1 py-0.5 max-w-full">
+                  <span class="truncate text-xs font-medium text-base-content">
+                    {record ? renderLabel(record) : id}
+                  </span>
+                  <button
+                    type="button"
+                    class="p-0.5 hover:bg-error hover:text-error-content rounded shrink-0 transition-colors"
+                    onClick={(e) => removeItem(e, id)}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              );
+            }}
+          </For>
         </div>
-      </button>
+      </div>
 
       <Show when={isOpen()}>
         <div class="absolute z-50 top-full left-0 mt-1 w-full min-w-[300px] bg-base-100 border border-base-300 rounded-box shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
           <div class="flex items-center gap-2 p-2 border-b border-base-200 bg-base-200/30">
             <input
-              ref={searchInputRef}
               type="text"
               class="flex-1 input input-sm input-bordered focus:outline-none"
               placeholder="Search..."
               value={searchInput()}
               onInput={(e) => setSearchInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              onClick={(e) => e.stopPropagation()} // 🚀 THE FIX
+              onClick={stopEvent}
             />
             <button
               type="button"
@@ -180,10 +225,10 @@ export default function RelationField(props) {
           <div
             class="grid px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-base-content/50 bg-base-200/50 border-b border-base-200"
             style={{
-              "grid-template-columns": `repeat(${cols().length}, minmax(0, 1fr)) 24px`,
+              "grid-template-columns": `repeat(${props.config.columns.length}, minmax(0, 1fr)) 24px`,
             }}
           >
-            <For each={cols()}>
+            <For each={props.config.columns}>
               {(col) => <span class="truncate pr-2">{col.label}</span>}
             </For>
             <span></span>
@@ -191,39 +236,37 @@ export default function RelationField(props) {
 
           <div
             class="max-h-64 overflow-y-auto p-1 relative min-h-[100px]"
-            onClick={(e) => e.stopPropagation()}
+            onClick={stopEvent}
           >
-            <Show when={recordsQuery.isFetching}>
+            <Show when={lookupQuery.isFetching}>
               <div class="absolute inset-0 bg-base-100/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
                 <span class="loading loading-spinner text-primary loading-sm"></span>
               </div>
             </Show>
-
             <Show
               when={
-                recordsQuery.data?.data?.length === 0 &&
-                !recordsQuery.isFetching
+                lookupQuery.data?.data?.length === 0 && !lookupQuery.isFetching
               }
             >
               <div class="p-6 text-center text-base-content/40 text-sm">
                 No records found.
               </div>
             </Show>
-
             <div class="flex flex-col gap-0.5">
-              <For each={recordsQuery.data?.data}>
+              <For each={lookupQuery.data?.data}>
                 {(row) => {
-                  const isSelected = props.value === String(row.id);
+                  const rowId = String(row.id);
+                  const isSelected = safeValue().includes(rowId);
                   return (
                     <button
                       type="button"
                       class={`w-full grid items-center px-2 py-2 text-left rounded-btn transition-colors ${isSelected ? "bg-primary/10 text-primary" : "hover:bg-base-200/60 text-base-content"}`}
                       style={{
-                        "grid-template-columns": `repeat(${cols().length}, minmax(0, 1fr)) 24px`,
+                        "grid-template-columns": `repeat(${props.config.columns.length}, minmax(0, 1fr)) 24px`,
                       }}
-                      onClick={(e) => handleSelect(e, String(row.id))}
+                      onClick={(e) => toggleItem(e, rowId)}
                     >
-                      <For each={cols()}>
+                      <For each={props.config.columns}>
                         {(col) => (
                           <span class="truncate pr-2">
                             {String(row[col.key] ?? "—")}
@@ -244,7 +287,7 @@ export default function RelationField(props) {
 
           <div
             class="border-t border-base-200 bg-base-200/30 p-1.5 flex items-center justify-between"
-            onClick={(e) => e.stopPropagation()}
+            onClick={stopEvent}
           >
             <span class="text-xs text-base-content/50 font-medium px-2">
               Page {page()}
@@ -253,7 +296,7 @@ export default function RelationField(props) {
               <button
                 type="button"
                 class="btn btn-xs btn-ghost px-2"
-                disabled={page() === 1 || recordsQuery.isFetching}
+                disabled={page() === 1 || lookupQuery.isFetching}
                 onClick={(e) => {
                   stopEvent(e);
                   setPage((p) => p - 1);
@@ -264,9 +307,7 @@ export default function RelationField(props) {
               <button
                 type="button"
                 class="btn btn-xs btn-ghost px-2"
-                disabled={
-                  !recordsQuery.data?.hasNext || recordsQuery.isFetching
-                }
+                disabled={!lookupQuery.data?.hasNext || lookupQuery.isFetching}
                 onClick={(e) => {
                   stopEvent(e);
                   setPage((p) => p + 1);

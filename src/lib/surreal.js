@@ -23,7 +23,7 @@ export const authRequestReset = async (email) => {
   return await db.signup({
     namespace: NS,
     database: DB,
-    access: "request_password_reset",
+    access: "password_management",
     variables: { email },
   });
 };
