@@ -125,6 +125,7 @@ export const USER_CONFIG = Object.freeze({
     explain: true,
     omit: true,
   },
+  searchable: ["name", "email"],
   fields: [
     field(PRESETS.record, {
       id: "id",
@@ -240,6 +241,7 @@ export const USER_CONFIG = Object.freeze({
     }),
   ],
   defaultState: {
+    search: "",
     page: 1,
     limit: 10,
     select: [

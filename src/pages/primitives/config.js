@@ -87,6 +87,7 @@ export const PRIMITIVE_CONFIG = Object.freeze({
     explain: true,
     omit: true,
   },
+  searchable: ["a_string"],
   fields: [
     field(PRESETS.record, {
       id: "id",
@@ -121,6 +122,7 @@ export const PRIMITIVE_CONFIG = Object.freeze({
     }),
   ],
   defaultState: {
+    search: "",
     page: 1,
     limit: 10,
     select: ["id", "a_string", "a_enum"],

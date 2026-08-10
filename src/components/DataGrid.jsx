@@ -9,6 +9,7 @@ import {
   X,
   LayoutGrid,
   List,
+  Search,
 } from "lucide-solid";
 import toast from "solid-toast";
 import { A } from "@solidjs/router";
@@ -92,6 +93,15 @@ export default function DataGrid(props) {
     } catch (e) {
       setCompileError(e.message);
     }
+  };
+
+  let searchTimeout;
+  const handleSearch = (val) => {
+    setDraftQuery("search", val);
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      commitQuery();
+    }, 500);
   };
 
   const resetDraft = () => {
@@ -181,8 +191,8 @@ export default function DataGrid(props) {
         <Show
           when={selectedIds().length > 0}
           fallback={
-            <header class="flex items-center justify-between gap-4 px-4 py-3 sm:px-5">
-              <div class="min-w-0 flex-1">
+            <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 py-3 sm:px-5">
+              <div class="min-w-0 flex-1 hidden sm:block">
                 <h2 class="truncate text-lg font-bold tracking-tight">
                   {CONFIG.ui.title}
                 </h2>
@@ -191,7 +201,23 @@ export default function DataGrid(props) {
                 </p>
               </div>
 
-              <div class="flex items-center gap-2 shrink-0">
+              <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                <Show when={CONFIG.searchable?.length > 0}>
+                  <div class="relative flex-1 sm:w-56">
+                    <Search
+                      size={14}
+                      class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      class="input input-sm input-bordered w-full pl-8 focus:outline-primary transition-all bg-base-200/50 focus:bg-base-100"
+                      value={draftQuery.search || ""}
+                      onInput={(e) => handleSearch(e.currentTarget.value)}
+                    />
+                  </div>
+                </Show>
+
                 <div class="join border border-base-300 shadow-sm hidden sm:inline-flex">
                   <button
                     type="button"
@@ -212,7 +238,7 @@ export default function DataGrid(props) {
                 </div>
                 <A
                   href={props.createPath || "new"}
-                  class="btn btn-primary btn-sm sm:btn-md shadow-sm"
+                  class="btn btn-primary btn-sm sm:btn-md shadow-sm whitespace-nowrap"
                 >
                   <Plus size={18} />{" "}
                   <span class="hidden sm:inline">
